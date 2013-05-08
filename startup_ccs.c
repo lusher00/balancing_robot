@@ -1,7 +1,6 @@
 //*****************************************************************************
 //
-// startup_ewarm.c - Startup code for use with IAR's Embedded Workbench,
-//                   version 5.
+// startup_ccs.c - Startup code for use with TI's Code Composer Studio.
 //
 // Copyright (c) 2009-2011 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
@@ -23,24 +22,15 @@
 //
 //*****************************************************************************
 
-#include "SafeRTOS/SafeRTOS_API.h"
-
-//*****************************************************************************
-//
-// Enable the IAR extensions for this source file.
-//
-//*****************************************************************************
-#pragma language=extended
-
 //*****************************************************************************
 //
 // Forward declaration of the default fault handlers.
 //
 //*****************************************************************************
+void ResetISR(void);
 static void NmiSR(void);
 static void FaultISR(void);
 static void IntDefaultHandler(void);
-
 
 //*****************************************************************************
 //
@@ -58,43 +48,32 @@ extern void Timer1IntHandler(void);
 
 //*****************************************************************************
 //
-// The entry point for the application startup code.
+// External declaration for the reset handler that is to be called when the
+// processor is started
 //
 //*****************************************************************************
-extern void __iar_program_start(void);
+extern void _c_int00(void);
 
 //*****************************************************************************
 //
-// Reserve space for the system stack.
+// Linker variable that marks the top of the stack.
 //
 //*****************************************************************************
-static unsigned long pulStack[8192] @ ".noinit";
-
-//*****************************************************************************
-//
-// A union that describes the entries of the vector table.  The union is needed
-// since the first entry is the stack pointer and the remainder are function
-// pointers.
-//
-//*****************************************************************************
-typedef union
-{
-    void (*pfnHandler)(void);
-    unsigned long ulPtr;
-}
-uVectorEntry;
+extern unsigned long __STACK_TOP;
 
 //*****************************************************************************
 //
 // The vector table.  Note that the proper constructs must be placed on this to
-// ensure that it ends up at physical address 0x0000.0000.
+// ensure that it ends up at physical address 0x0000.0000 or at the start of
+// the program if located at a start address other than 0.
 //
 //*****************************************************************************
-__root const uVectorEntry __vector_table[] @ ".intvec" =
+#pragma DATA_SECTION(g_pfnVectors, ".intvecs")
+void (* const g_pfnVectors[])(void) =
 {
-    { .ulPtr = (unsigned long)pulStack + sizeof(pulStack) },
+    (void (*)(void))((unsigned long)&__STACK_TOP),
                                             // The initial stack pointer
-    __iar_program_start,                    // The reset handler
+    ResetISR,                               // The reset handler
     NmiSR,                                  // The NMI handler
     FaultISR,                               // The hard fault handler
     IntDefaultHandler,                      // The MPU fault handler
@@ -104,11 +83,11 @@ __root const uVectorEntry __vector_table[] @ ".intvec" =
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved
-    { .ulPtr = vSafeRTOS_SVC_Handler_Address }, // SVCall handler
+    IntDefaultHandler,                      // SVCall handler
     IntDefaultHandler,                      // Debug monitor handler
     0,                                      // Reserved
-    { .ulPtr = vSafeRTOS_PendSV_Handler_Address }, // The PendSV handler
-    { .ulPtr = vSafeRTOS_SysTick_Handler_Address }, // The SysTick handler
+    IntDefaultHandler,                      // The PendSV handler
+    IntDefaultHandler,                      // The SysTick handler
     IntDefaultHandler,                      // GPIO Port A
     IntDefaultHandler,                      // GPIO Port B
     IntDefaultHandler,                      // GPIO Port C
@@ -165,6 +144,26 @@ __root const uVectorEntry __vector_table[] @ ".intvec" =
     IntDefaultHandler,                      // External Bus Interface 0
     IntDefaultHandler                       // GPIO Port J
 };
+
+//*****************************************************************************
+//
+// This is the code that gets called when the processor first starts execution
+// following a reset event.  Only the absolutely necessary set is performed,
+// after which the application supplied entry() routine is called.  Any fancy
+// actions (such as making decisions based on the reset cause register, and
+// resetting the bits in that register) are left solely in the hands of the
+// application.
+//
+//*****************************************************************************
+void
+ResetISR(void)
+{
+    //
+    // Jump to the CCS C Initialization Routine.
+    //
+    __asm("    .global _c_int00\n"
+          "    b.w     _c_int00");
+}
 
 //*****************************************************************************
 //

@@ -8,18 +8,14 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
 #include "driverlib/interrupt.h"
-#include "drivers/kitronix320x240x16_ssd2119_8bit.h"
-#include "drivers/set_pinout.h"
+//#include "drivers/kitronix320x240x16_ssd2119_8bit.h"
+//#include "drivers/set_pinout.h"
 #include "driverlib/flash.h"
 #include "driverlib/pwm.h"
 #include "softeeprom.h"
 #include "driverlib/uart.h"
 #include "softeeprom.h"
      
-/*******************************************************************
- * SafeRTOS
- *******************************************************************/
-#include "SafeRTOS/SafeRTOS_API.h"
 
      
 /*******************************************************************
@@ -104,7 +100,7 @@ main(void)
     long lEEPROMRetStatus;
 
     // Set the clocking to run at 80 MHz from the PLL.
-    ROM_SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
+    SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
         
     // Initialize the device pinout appropriately for this board.
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
