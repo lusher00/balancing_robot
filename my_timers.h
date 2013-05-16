@@ -5,7 +5,7 @@
 
 extern void my_timer0_init(void);
 extern void my_timer1_init(void);
-extern uint64_t myTimerValueGet(void);
+extern unsigned int myTimerValueGet(void);
 extern void myTimerZero(void);
 
 #endif

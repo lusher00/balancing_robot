@@ -28,9 +28,9 @@ typedef struct PID_DATA{
   
   double lastProcessValue;
   
-  short P_Factor;
-  short I_Factor;
-  short D_Factor;
+  double P_Factor;
+  double I_Factor;
+  double D_Factor;
     
   double p_term;
   double d_term;
@@ -55,14 +55,14 @@ typedef struct PID_DATA{
 #define FALSE           0
 #define TRUE            1
 
-extern void pid_init(short p_factor, short i_factor, short d_factor, t_piddata *pid);
+extern void pid_init(double p_factor, double i_factor, double d_factor, t_piddata *pid);
 extern int16_t ang_controller(double setPoint, double processValue, double delta_t, t_piddata *pid_st);
 
-extern void pid_update(short p_factor, short i_factor, short d_factor, t_piddata *pid);
+extern void pid_update(double p_factor, double i_factor, double d_factor, t_piddata *pid);
 extern void i_reset(t_piddata *pid);
-extern void p_update(short p_factor, t_piddata *pid);
-extern void i_update(short i_factor, t_piddata *pid);
-extern void d_update(short d_factor, t_piddata *pid);
+extern void p_update(double p_factor, t_piddata *pid);
+extern void i_update(double i_factor, t_piddata *pid);
+extern void d_update(double d_factor, t_piddata *pid);
 extern double p_get(t_piddata *pid);
 extern double i_get(t_piddata *pid);
 extern double d_get(t_piddata *pid);

@@ -89,12 +89,12 @@ void gyro_init()
     //  Continuous update
     //  MSB @ lower address
     //  L3G4200D_DPS_250, L3G4200D_DPS_500, L3G4200D_DPS_1000, L3G4200D_DPS_2000
-    i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG4, 0xC0 | L3G4200D_DPS_2000);
+    i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG4, 0xC0 | L3G4200D_DPS_250);
     
     // Just set this here so I can globaly change the gyro resolution in one place.
-    //g_gyroScale = 0.00875; //250dps;
+    g_gyroScale = 0.00875; //250dps;
     //g_gyroScale = 0.01750; //500dps;
-    g_gyroScale = 0.07000; //2000dps;
+    //g_gyroScale = 0.07000; //2000dps;
     
     //  Configure CTRL_REG5
     // Enable HP & LP filters

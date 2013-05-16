@@ -1,46 +1,10 @@
-//*****************************************************************************
-//
-// softeeprom.c - Example driver for software emulation of EEPROM.
-//
-// Copyright (c) 2005-2009 Luminary Micro, Inc.  All rights reserved.
-// 
-// Software License Agreement
-// 
-// Luminary Micro, Inc. (LMI) is supplying this software for use solely and
-// exclusively on LMI's microcontroller products.
-// 
-// The software is owned by LMI and/or its suppliers, and is protected under
-// applicable copyright laws.  All rights are reserved.  You may not combine
-// this software with "viral" open-source software in order to form a larger
-// program.  Any use in violation of the foregoing restrictions may subject
-// the user to criminal sanctions under applicable laws, as well as to civil
-// liability for the breach of the terms and conditions of this license.
-// 
-// THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
-// OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
-// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
-// LMI SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
-// CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
-// 
-// This is part of revision 5132 of the EEPROM Emulation Example.
-//
-//*****************************************************************************
-
 #include "inc/hw_types.h"
 #include "inc/hw_flash.h"
 #include "driverlib/sysctl.h"
 #include "driverlib/flash.h"
 #include "driverlib/debug.h"
 #include "softeeprom.h"
-
-//*****************************************************************************
-//
-//! \addtogroup example_list
-//! <h1>Software Emulation of EEPROM (softeeprom)</h1>
-//!
-//! This software is intended to provide example drivers for EEPROM emulation.
-//
-//*****************************************************************************
+#include "stdint.h"
 
 //*****************************************************************************
 //
@@ -230,46 +194,34 @@ static unsigned char* g_pucNextAvailEntry;
 static long
 PageErase(unsigned char* pucPageAddr)
 {
-    unsigned char* pucAddr;
+	unsigned char* pucAddr;
 
-    //
-    // Loop through the Flash pages within the specified EEPROM page.
-    //
-    for(pucAddr = pucPageAddr; pucAddr < (pucPageAddr + g_ulEEPROMPgSize);
-        pucAddr += FLASH_ERASE_SIZE)
-    {
-        //
-        // Erase the page.
-        //
-        if(FlashErase((unsigned long)pucAddr))
-        {
-            //
-            // The erase failed.
-            //
-            return(-1);
-        }
-    }
+	// Loop through the Flash pages within the specified EEPROM page.
+	for(pucAddr = pucPageAddr; pucAddr < (pucPageAddr + g_ulEEPROMPgSize);
+			pucAddr += FLASH_ERASE_SIZE)
+	{
+		// Erase the page.
+		if(FlashErase((unsigned long)pucAddr))
+		{
+			// The erase failed.
+			return(-1);
+		}
+	}
 
-    //
-    // Verify that the EEPROM page is indeed erased by checking that the
-    // status words are 0xFFFFFFFF (much faster than reading the entire
-    // page).  It is assumed that if there was an error erasing the data
-    // portion of the page, then it will be detected when verifying the
-    // subsequent data writes in SoftEEPROMWrite().
-    //
-    if(((*(unsigned long*)pucPageAddr) != ERASED_WORD) ||
-    ((*(unsigned long*)(pucPageAddr + 4)) != ERASED_WORD))
-    {
-        //
-        // The erase-verify failed.
-        //
-        return(-1);
-    }
+	// Verify that the EEPROM page is indeed erased by checking that the
+	// status words are 0xFFFFFFFF (much faster than reading the entire
+	// page).  It is assumed that if there was an error erasing the data
+	// portion of the page, then it will be detected when verifying the
+	// subsequent data writes in SoftEEPROMWrite().
+	if(((*(unsigned long*)pucPageAddr) != ERASED_WORD) ||
+			((*(unsigned long*)(pucPageAddr + 4)) != ERASED_WORD))
+	{
+		// The erase-verify failed.
+		return(-1);
+	}
 
-    //
-    // The erase and erase-verify were successful, so return 0.
-    //
-    return(0);
+	// The erase and erase-verify were successful, so return 0.
+	return(0);
 }
 
 //*****************************************************************************
@@ -292,48 +244,34 @@ PageErase(unsigned char* pucPageAddr)
 //*****************************************************************************
 static long
 PageDataWrite(unsigned long* pulData, unsigned char* pucPgAddr, 
-              unsigned char ucByteCount)
+		unsigned char ucByteCount)
 {
-    unsigned char ucCount;
-    
-    //
-    // Write the supplied data to the supplied address.
-    //
-    if(FlashProgram(pulData, (unsigned long)pucPgAddr, ucByteCount))
-    {
-        //
-        // A error occurred.
-        //
-        return(-1);
-    }
+	unsigned char ucCount;
 
-    //
-    // Loop through and verify the program operation
-    //
-    for(ucCount = 0; ucCount < ucByteCount; ucCount += 4)
-    {
-        //
-        // Verify that the data was programmed correctly.
-        //
-        if(*(unsigned long *)pucPgAddr != *pulData)
-        {
-            //
-            // An error occurred.
-            //
-              return(-1);
-        }
+	// Write the supplied data to the supplied address.
+	if(FlashProgram(pulData, (unsigned long)pucPgAddr, ucByteCount))
+	{
+		// A error occurred.
+		return(-1);
+	}
 
-        //
-        // Increment the pointers.
-        //
-        pucPgAddr += 4;
-        pulData++;
-    }
-    
-    //
-    // The program operation was successful, so return 0.
-    //    
-    return(0);
+	// Loop through and verify the program operation
+	for(ucCount = 0; ucCount < ucByteCount; ucCount += 4)
+	{
+		// Verify that the data was programmed correctly.
+		if(*(unsigned long *)pucPgAddr != *pulData)
+		{
+			// An error occurred.
+			return(-1);
+		}
+
+		// Increment the pointers.
+		pucPgAddr += 4;
+		pulData++;
+	}
+
+	// The program operation was successful, so return 0.
+	return(0);
 }
 
 //*****************************************************************************
@@ -364,248 +302,172 @@ PageDataWrite(unsigned long* pulData, unsigned char* pucPgAddr,
 static long
 PageSwap(unsigned char* pucFullPageAddr)
 {
-    unsigned short usCnt;
-    unsigned short usSize;
-    unsigned long  ulEntry;
-    unsigned char ucEntryID;
-    unsigned char* pucNewEntry;
-    unsigned char* pucUsedEntry;
-    unsigned char* pucNewPageAddr;
-    //
-    // An array of bytes used as a bit vector to determine if the entry for the
-    // given ID has already been copied over to the new page.
-    //
-    unsigned char ucIDSwapped[NUM_VECTOR_BYTES];
-    //
-    // An array to store the entries to be moved to the next page.
-    // Declared as static so that the memory is not allocated on the stack.
-    //
-    static unsigned long ulDataBuffer[32];
-    unsigned long ulNumWordsInBuffer;
-    unsigned long ulByteCount;
+	unsigned short usCnt;
+	unsigned short usSize;
+	unsigned long  ulEntry;
+	unsigned char ucEntryID;
+	unsigned char* pucNewEntry;
+	unsigned char* pucUsedEntry;
+	unsigned char* pucNewPageAddr;
 
-    //
-    // Initially set all the bits of the entire ucAddrSwapped array to 0.
-    //
-    for(usCnt = 0; usCnt < NUM_VECTOR_BYTES; usCnt++)
-    {
-        //
-        // Set all bits of the bit vector to 0.
-        //
-        ucIDSwapped[usCnt] = 0;
-    }
+	// An array of bytes used as a bit vector to determine if the entry for the
+	// given ID has already been copied over to the new page.
+	unsigned char ucIDSwapped[NUM_VECTOR_BYTES];
 
-    //
-    // Get the new page pointer.
-    //
-    pucNewPageAddr = ((pucFullPageAddr + g_ulEEPROMPgSize) < g_pucEEPROMEnd) ?
-                     (pucFullPageAddr + g_ulEEPROMPgSize) :
-                     g_pucEEPROMStart;
+	// An array to store the entries to be moved to the next page.
+	// Declared as static so that the memory is not allocated on the stack.
+	static unsigned long ulDataBuffer[32];
+	unsigned long ulNumWordsInBuffer;
+	unsigned long ulByteCount;
 
-    //
-    // Step 1) Erase the new page.
-    //
-    if(PageErase(pucNewPageAddr))
-    {
-        //
-        // Return error.
-        //
-        return(ERR_SWAP | ERR_PG_ERASE);
-    }
-
-    //
-    // Initially set the used entry pointer to the last entry of the full page.
-    //
-    pucUsedEntry = pucFullPageAddr + g_ulEEPROMPgSize - 4;
-
-    //
-    // Initially set the new entry pointer to the first entry of the new page.
-    //
-    pucNewEntry = pucNewPageAddr + 8;
-
-    //
-    // Get the size of the variable array.  The entries are 4 bytes each and the
-    // first 2 words are used for status.
-    //
-     usSize = (g_ulEEPROMPgSize / 4) - 2;
-
-    //
-    // Calculate the number of bytes that can be written with the first
-    // programming operation if using a part with Flash write buffers.
-    // Initialize the number of words in the storage buffer.
-    //
-    ulByteCount = 32 - ((unsigned long)pucNewEntry & 0x7F);  
-    ulNumWordsInBuffer = 0;   
-    
-    //
-    // Step 2) Now copy the most recent data.  Read from the end of the
-    // currently active page first.  Only copy the data for a given ID the
-    // first time it is encountered since this is the most recent value for
-    // that ID.
-    //
-    for(usCnt = 0;usCnt < usSize; usCnt++)
-    {
-        //
-        // Read the entry.
-        //
-        ulEntry = *(unsigned long*)pucUsedEntry;
-
-        //
-        // Decrement the pointer to the entry in the full page.
-        //
-        pucUsedEntry -= 4;
-        
-        //
-        // Get the ID for the entry.
-        //
-        ucEntryID = ulEntry >> 24;
-
-        //
-        // If this id has not been copied yet and the id is not equal to 0xFF
-        // then copy it.  Under normal conditions, we should never encounter
-        // an entry with an id of 0xFF since PageSwap() should only be called
-        // when the currently active page is full, but check just in case since
-        // we don't want to copy empty entries.
-        //
-        if(((ucIDSwapped[ucEntryID / 8] & (0x1 << (ucEntryID % 8))) == 0)
-           && (ucEntryID != 0xFF))
-        {
-            //
-            // Put the data in the buffer and increment the counter.
-            //
-            ulDataBuffer[ulNumWordsInBuffer++] = ulEntry;
-            
-            //
-            // Set the appropriate bit in the bit vector to indicate that the ID
-            // has already been copied.
-            //
-            ucIDSwapped[ucEntryID / 8] |= (0x1 << (ucEntryID % 8));
-            
-            //
-            // Decrement the ulByteCount remaining in the Flash write buffers.
-            //
-            ulByteCount -= 4;
-            
-            //
-            // Check to see if all of the Flash write buffer space will be used
-            // up in the next programming operation.
-            //
-            if(ulByteCount == 0)
-            {
-                //
-                // Program the buffer to memory.
-                //
-                if(PageDataWrite(&ulDataBuffer[0], pucNewEntry, ulNumWordsInBuffer * 4))
-                {
-                    //
-                    // Return the error.
-                    //
-                    return(ERR_SWAP | ERR_PG_WRITE);                   
-                }
-                
-                //
-                // Increment the address to program the next entry in the new page.
-                //
-                pucNewEntry += (ulNumWordsInBuffer * 4);
-
-                //
-                // Reset the byte count remaining the write buffer space to the
-                // equivalent of 32 words.  Reset the number of words already in
-                // the local buffer to 0.
-                //
-                ulByteCount = 32 * 4;
-                ulNumWordsInBuffer = 0;
-            }
-        }
+	// Initially set all the bits of the entire ucAddrSwapped array to 0.
+	for(usCnt = 0; usCnt < NUM_VECTOR_BYTES; usCnt++)
+	{
+		// Set all bits of the bit vector to 0.
+		ucIDSwapped[usCnt] = 0;
 	}
 
-	//
+	// Get the new page pointer.
+	pucNewPageAddr = ((pucFullPageAddr + g_ulEEPROMPgSize) < g_pucEEPROMEnd) ?
+			(pucFullPageAddr + g_ulEEPROMPgSize) :
+			g_pucEEPROMStart;
+
+	// Step 1) Erase the new page.
+	if(PageErase(pucNewPageAddr))
+	{
+		// Return error.
+		return(ERR_SWAP | ERR_PG_ERASE);
+	}
+
+	// Initially set the used entry pointer to the last entry of the full page.
+	pucUsedEntry = pucFullPageAddr + g_ulEEPROMPgSize - 4;
+
+	// Initially set the new entry pointer to the first entry of the new page.
+	pucNewEntry = pucNewPageAddr + 8;
+
+	// Get the size of the variable array.  The entries are 4 bytes each and the
+	// first 2 words are used for status.
+	usSize = (g_ulEEPROMPgSize / 4) - 2;
+
+	// Calculate the number of bytes that can be written with the first
+	// programming operation if using a part with Flash write buffers.
+	// Initialize the number of words in the storage buffer.
+	ulByteCount = 32 - ((unsigned long)pucNewEntry & 0x7F);
+	ulNumWordsInBuffer = 0;
+
+	// Step 2) Now copy the most recent data.  Read from the end of the
+	// currently active page first.  Only copy the data for a given ID the
+	// first time it is encountered since this is the most recent value for
+	// that ID.
+	for(usCnt = 0;usCnt < usSize; usCnt++)
+	{
+		// Read the entry.
+		ulEntry = *(unsigned long*)pucUsedEntry;
+
+		// Decrement the pointer to the entry in the full page.
+		pucUsedEntry -= 4;
+
+		// Get the ID for the entry.
+		ucEntryID = ulEntry >> 24;
+
+		// If this id has not been copied yet and the id is not equal to 0xFF
+		// then copy it.  Under normal conditions, we should never encounter
+		// an entry with an id of 0xFF since PageSwap() should only be called
+		// when the currently active page is full, but check just in case since
+		// we don't want to copy empty entries.
+		if(((ucIDSwapped[ucEntryID / 8] & (0x1 << (ucEntryID % 8))) == 0)
+				&& (ucEntryID != 0xFF))
+		{
+			// Put the data in the buffer and increment the counter.
+			ulDataBuffer[ulNumWordsInBuffer++] = ulEntry;
+
+			// Set the appropriate bit in the bit vector to indicate that the ID
+			// has already been copied.
+			ucIDSwapped[ucEntryID / 8] |= (0x1 << (ucEntryID % 8));
+
+			// Decrement the ulByteCount remaining in the Flash write buffers.
+			ulByteCount -= 4;
+
+			// Check to see if all of the Flash write buffer space will be used
+			// up in the next programming operation.
+			if(ulByteCount == 0)
+			{
+				// Program the buffer to memory.
+				if(PageDataWrite(&ulDataBuffer[0], pucNewEntry, ulNumWordsInBuffer * 4))
+				{
+					// Return the error.
+					return(ERR_SWAP | ERR_PG_WRITE);
+				}
+
+				// Increment the address to program the next entry in the new page.
+				pucNewEntry += (ulNumWordsInBuffer * 4);
+
+				// Reset the byte count remaining the write buffer space to the
+				// equivalent of 32 words.  Reset the number of words already in
+				// the local buffer to 0.
+				ulByteCount = 32 * 4;
+				ulNumWordsInBuffer = 0;
+			}
+		}
+	}
+
 	//	Are there any words remaining in the data buffer?
-	//
 	if(ulNumWordsInBuffer != 0)
 	{
-        //
-        // Program the buffer to memory.
-        //
-        if(PageDataWrite(&ulDataBuffer[0], pucNewEntry, ulNumWordsInBuffer * 4))
-        {
-            //
-            // Return the error.
-            //
-            return(ERR_SWAP | ERR_PG_WRITE);                   
-        }
+		// Program the buffer to memory.
+		if(PageDataWrite(&ulDataBuffer[0], pucNewEntry, ulNumWordsInBuffer * 4))
+		{
+			// Return the error.
+			return(ERR_SWAP | ERR_PG_WRITE);
+		}
 
-        //
-	    // Increment the address to program the next entry in the new page.
-	    //
-	    pucNewEntry += (ulNumWordsInBuffer * 4);
+		// Increment the address to program the next entry in the new page.
+		pucNewEntry += (ulNumWordsInBuffer * 4);
 	}
 
 
-    //
-    // Step 3) Mark the new page as active. Increment the active status
-    // counter by 1 from the previous page.  First just store in local buffer.
-    //
-    ulDataBuffer[0] = (*(unsigned long*)pucFullPageAddr) + 1;
-	
-	//
-    // Now program the status word to Flash.
-    //
-    if(PageDataWrite(&ulDataBuffer[0], pucNewPageAddr, 4))
-    {
-        //
-        // Return the error.
-        //
-        return(ERR_SWAP | ERR_PG_WRITE);
-    }
+	// Step 3) Mark the new page as active. Increment the active status
+	// counter by 1 from the previous page.  First just store in local buffer.
+	ulDataBuffer[0] = (*(unsigned long*)pucFullPageAddr) + 1;
 
-    //
-    // Step 4) Mark the full page as used. This is indicated by marking the
-    // second status word in the page.  First just store in local buffer.
-    //
-    ulDataBuffer[0] = ~(ERASED_WORD);
-    
-    //
-    // Now program the status word to Flash.
-    //
-    if(PageDataWrite(&ulDataBuffer[0], pucFullPageAddr + 4, 4))
-    {
-        //
-        // Return the error.
-        //
-        return(ERR_SWAP | ERR_PG_WRITE);
-    }
+	// Now program the status word to Flash.
+	if(PageDataWrite(&ulDataBuffer[0], pucNewPageAddr, 4))
+	{
+		// Return the error.
+		return(ERR_SWAP | ERR_PG_WRITE);
+	}
 
-    //
-    // Now save the pointer to the beginning of the new active page and return.
-    //
-    g_pucActivePage = pucNewPageAddr;
+	// Step 4) Mark the full page as used. This is indicated by marking the
+	// second status word in the page.  First just store in local buffer.
+	ulDataBuffer[0] = ~(ERASED_WORD);
 
-    //
-    // The next available entry location in the new page is pucNewEntry.
-    //
-    g_pucNextAvailEntry = pucNewEntry;
+	// Now program the status word to Flash.
+	if(PageDataWrite(&ulDataBuffer[0], pucFullPageAddr + 4, 4))
+	{
+		// Return the error.
+		return(ERR_SWAP | ERR_PG_WRITE);
+	}
 
-	//
+	// Now save the pointer to the beginning of the new active page and return.
+	g_pucActivePage = pucNewPageAddr;
+
+	// The next available entry location in the new page is pucNewEntry.
+	g_pucNextAvailEntry = pucNewEntry;
+
 	// Check that the next available entry is within the the new page.  If a
 	// page size of 1K is used (1024/4 - 2 = 254 entries) and all 255 IDs are
 	// used (0-254) then it is possible to swap to a new page and not have
 	// any available entries in the new page.  This should be avoided by
-    // the user by configuring the EEPROM appropriately for the given
-    // application.
-	//
+	// the user by configuring the EEPROM appropriately for the given
+	// application.
 	if(!(g_pucNextAvailEntry < (g_pucActivePage + g_ulEEPROMPgSize)))
 	{
-		//
-        // Return the error.
-        //
-        return(ERR_SWAP | ERR_AVAIL_ENTRY);
+		// Return the error.
+		return(ERR_SWAP | ERR_AVAIL_ENTRY);
 	}
 
-    //
-    // Return success.
-    //
-     return(0);
+	// Return success.
+	return(0);
 }
 
 //*****************************************************************************
@@ -625,24 +487,18 @@ PageSwap(unsigned char* pucFullPageAddr)
 static tBoolean
 PageIsActive(unsigned char* pucPageAddr)
 {
-    //
-    // Check the two status words of the page for the active status.
-    //
-    if((*(unsigned long*)pucPageAddr != ERASED_WORD) &&
-       (*(unsigned long*)(pucPageAddr + 4) == ERASED_WORD))
-    {
-        //
-        // The page is active.  Return true.
-        //
-        return(true);
-    }
-    else
-    {
-        //
-        // The page is not active.  Return false.
-        //
-        return(false);
-    }
+	// Check the two status words of the page for the active status.
+	if((*(unsigned long*)pucPageAddr != ERASED_WORD) &&
+			(*(unsigned long*)(pucPageAddr + 4) == ERASED_WORD))
+	{
+		// The page is active.  Return true.
+		return(true);
+	}
+	else
+	{
+		// The page is not active.  Return false.
+		return(false);
+	}
 }
 
 //*****************************************************************************
@@ -662,24 +518,18 @@ PageIsActive(unsigned char* pucPageAddr)
 static tBoolean
 PageIsUsed(unsigned char* pucPageAddr)
 {
-    //
-    // Check the two status words of the page for the used status.
-    //
-    if((*(unsigned long*)pucPageAddr != ERASED_WORD) &&
-       (*(unsigned long*)(pucPageAddr + 4) != ERASED_WORD))
-    {
-        //
-        // The page is used.  Return true.
-        //
-        return(true);
-    }
-    else
-    {
-        //
-        // The page is not used.  Return false.
-        //
-        return(false);
-    }
+	// Check the two status words of the page for the used status.
+	if((*(unsigned long*)pucPageAddr != ERASED_WORD) &&
+			(*(unsigned long*)(pucPageAddr + 4) != ERASED_WORD))
+	{
+		// The page is used.  Return true.
+		return(true);
+	}
+	else
+	{
+		// The page is not used.  Return false.
+		return(false);
+	}
 }
 
 //*****************************************************************************
@@ -695,36 +545,26 @@ PageIsUsed(unsigned char* pucPageAddr)
 static unsigned char
 GetActivePageCount(void)
 {
-    unsigned char ucCnt;
-    unsigned char* pucPageAddr;
+	unsigned char ucCnt;
+	unsigned char* pucPageAddr;
 
-    //
-    // Initially set ucCnt to 0
-    //
-    ucCnt = 0;
+	// Initially set ucCnt to 0
+	ucCnt = 0;
 
-    //
-    // Loop through the EEPROM pages.
-    //
-    for(pucPageAddr = g_pucEEPROMStart; pucPageAddr < g_pucEEPROMEnd;
-        pucPageAddr += g_ulEEPROMPgSize)
-    {
-        //
-        // Is the page marked as active?
-        //
-        if(PageIsActive(pucPageAddr))
-        {
-            //
-            // The page is marked as active so increment the counter.
-            //
-            ucCnt++;
-        }
-    }
+	// Loop through the EEPROM pages.
+	for(pucPageAddr = g_pucEEPROMStart; pucPageAddr < g_pucEEPROMEnd;
+			pucPageAddr += g_ulEEPROMPgSize)
+	{
+		// Is the page marked as active?
+		if(PageIsActive(pucPageAddr))
+		{
+			// The page is marked as active so increment the counter.
+			ucCnt++;
+		}
+	}
 
-    //
-    // return the active page count
-    //
-    return ucCnt;
+	// return the active page count
+	return ucCnt;
 }
 
 //*****************************************************************************
@@ -740,36 +580,26 @@ GetActivePageCount(void)
 static unsigned char
 GetUsedPageCount(void)
 {
-    unsigned char ucCnt;
-    unsigned char* pucPageAddr;
+	unsigned char ucCnt;
+	unsigned char* pucPageAddr;
 
-    //
-    // Initially set ucCnt to 0
-    //
-    ucCnt = 0;
+	// Initially set ucCnt to 0
+	ucCnt = 0;
 
-    //
-    // Loop through the EEPROM pages.
-    //
-    for(pucPageAddr = g_pucEEPROMStart; pucPageAddr < g_pucEEPROMEnd;
-        pucPageAddr += g_ulEEPROMPgSize)
-    {
-        //
-        // Is the page marked as used?
-        //
-        if(PageIsUsed(pucPageAddr))
-        {
-            //
-            // The page is marked as used so increment the counter.
-            //
-            ucCnt++;
-        }
-    }
+	// Loop through the EEPROM pages.
+	for(pucPageAddr = g_pucEEPROMStart; pucPageAddr < g_pucEEPROMEnd;
+			pucPageAddr += g_ulEEPROMPgSize)
+	{
+		// Is the page marked as used?
+		if(PageIsUsed(pucPageAddr))
+		{
+			// The page is marked as used so increment the counter.
+			ucCnt++;
+		}
+	}
 
-    //
-    // return the used page count
-    //
-    return ucCnt;
+	// return the used page count
+	return ucCnt;
 }
 
 //*****************************************************************************
@@ -788,48 +618,34 @@ GetUsedPageCount(void)
 static unsigned char*
 GetNextAvailEntry(void)
 {
-    unsigned char* pucPageAddr;
-    unsigned short usIdx;
-    unsigned short usSize;
+	unsigned char* pucPageAddr;
+	unsigned short usIdx;
+	unsigned short usSize;
 
-    //
-    // Get the number of entries in the EEPROM page.  Each entry is 4 bytes and
-    // the first 2 word are uses for status.
-    //
-    usSize = (g_ulEEPROMPgSize / 4) - 2;
+	// Get the number of entries in the EEPROM page.  Each entry is 4 bytes and
+	// the first 2 word are uses for status.
+	usSize = (g_ulEEPROMPgSize / 4) - 2;
 
-    //
-    // Initially set the entry pointer to the first entry in the active
-    // page.
-    //
-    pucPageAddr = g_pucActivePage + 8;
+	// Initially set the entry pointer to the first entry in the active
+	// page.
+	pucPageAddr = g_pucActivePage + 8;
 
-    //
-    // Loop through the page.
-    //
-    for(usIdx = 0; usIdx < usSize; usIdx++)
-    {
-        //
-        // Is the entry available?
-        //
-        if(*(unsigned long*)(pucPageAddr) == ERASED_WORD)
-        {
-            //
-            // An empty entry was found.  Break out of the loop.
-            //
-            break;
-        }
+	// Loop through the page.
+	for(usIdx = 0; usIdx < usSize; usIdx++)
+	{
+		// Is the entry available?
+		if(*(unsigned long*)(pucPageAddr) == ERASED_WORD)
+		{
+			// An empty entry was found.  Break out of the loop.
+			break;
+		}
 
-        //
-        // Increment the entry pointer.
-        //
-        pucPageAddr += 4;
-    }
+		// Increment the entry pointer.
+		pucPageAddr += 4;
+	}
 
-    //
-    // Return the address of the next available entry.
-    //
-    return(pucPageAddr);
+	// Return the address of the next available entry.
+	return(pucPageAddr);
 }
 
 //*****************************************************************************
@@ -847,51 +663,37 @@ GetNextAvailEntry(void)
 static unsigned char*
 GetMostRecentlyUsedPage(void)
 {
-    unsigned char* pucMRUPage;
-    unsigned char* pucPageAddr;
-    unsigned long ulActiveStatusCnt;
-    
-    //
-    // Set the page pointer to the first page.
-    //
-    pucPageAddr = g_pucEEPROMStart;
-    
-    //
-    // Initially set ulActiveStatusCnt to 0 and pucMRUPage to 0xFFFFFFFF.
-    //
-    ulActiveStatusCnt = 0;
-    pucMRUPage = (unsigned char*)0xFFFFFFFF;
-    
-    //
-    // Loop through all of the pages.
-    //
-    for(pucPageAddr = g_pucEEPROMStart; pucPageAddr < g_pucEEPROMEnd;
-        pucPageAddr += g_ulEEPROMPgSize)
-    {
-        //
-        // Is the page used.
-        //
-        if(PageIsUsed(pucPageAddr))
-        {
-            //
-            // Is this active status count higher?
-            //
-            if(*(unsigned long *)pucPageAddr > ulActiveStatusCnt)
-            {
-                //
-                // Save the new high active status count and the page address.
-                //
-                ulActiveStatusCnt = *(unsigned long *)pucPageAddr;
-                pucMRUPage = pucPageAddr;
-            }
-            
-        }
-    }
-    
-    //
-    // Return the beginning address of the most recently used page.
-    //
-    return(pucMRUPage);
+	unsigned char* pucMRUPage;
+	unsigned char* pucPageAddr;
+	unsigned long ulActiveStatusCnt;
+
+	// Set the page pointer to the first page.
+	pucPageAddr = g_pucEEPROMStart;
+
+	// Initially set ulActiveStatusCnt to 0 and pucMRUPage to 0xFFFFFFFF.
+	ulActiveStatusCnt = 0;
+	pucMRUPage = (unsigned char*)0xFFFFFFFF;
+
+	// Loop through all of the pages.
+	for(pucPageAddr = g_pucEEPROMStart; pucPageAddr < g_pucEEPROMEnd;
+			pucPageAddr += g_ulEEPROMPgSize)
+	{
+		// Is the page used.
+		if(PageIsUsed(pucPageAddr))
+		{
+			// Is this active status count higher?
+			if(*(unsigned long *)pucPageAddr > ulActiveStatusCnt)
+			{
+				// Save the new high active status count and the page address.
+				ulActiveStatusCnt = *(unsigned long *)pucPageAddr;
+				pucMRUPage = pucPageAddr;
+			}
+
+		}
+	}
+
+	// Return the beginning address of the most recently used page.
+	return(pucMRUPage);
 }
 
 //*****************************************************************************
@@ -922,377 +724,257 @@ GetMostRecentlyUsedPage(void)
 //*****************************************************************************
 long
 SoftEEPROMInit(unsigned long ulStart, unsigned long ulEnd,
-               unsigned long ulSize)
+		unsigned long ulSize)
 {
-    unsigned long ulActiveStatusCnt;
-    unsigned char ucActivePgCnt;
-    unsigned char* pucPageAddr;
-    unsigned char* pucActivePg;
+	unsigned long ulActiveStatusCnt;
+	unsigned char ucActivePgCnt;
+	unsigned char* pucPageAddr;
+	unsigned char* pucActivePg;
 	tBoolean bFullPgFound;
 
-    ASSERT(ulEnd > ulStart);
-    ASSERT((ulStart % EEPROM_BOUNDARY) == 0);
-    ASSERT((ulEnd % EEPROM_BOUNDARY) == 0);
-    ASSERT((ulSize % FLASH_ERASE_SIZE) == 0);
-    ASSERT(((ulEnd - ulStart) / ulSize) >= 2);
-    
-    //
-    // Check that the EEPROM region is within the Flash.
-    //
-    if(ulEnd > SysCtlFlashSizeGet())
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_RANGE);   
-    }
+	ASSERT(ulEnd > ulStart);
+	ASSERT((ulStart % EEPROM_BOUNDARY) == 0);
+	ASSERT((ulEnd % EEPROM_BOUNDARY) == 0);
+	ASSERT((ulSize % FLASH_ERASE_SIZE) == 0);
+	ASSERT(((ulEnd - ulStart) / ulSize) >= 2);
 
-    //
-    // Save the characteristics of the EEPROM Emulation area. Mask off the 
-    // lower bits of the addresses to ensure that they are 4K aligned.
-    //
-    g_pucEEPROMStart = (unsigned char *)(ulStart & ~(EEPROM_BOUNDARY - 1));
-    g_pucEEPROMEnd = (unsigned char *)(ulEnd & ~(EEPROM_BOUNDARY - 1));
-    g_ulEEPROMPgSize = ulSize;
+	// Check that the EEPROM region is within the Flash.
+	if(ulEnd > SysCtlFlashSizeGet())
+	{
+		// Return the proper error.
+		return(ERR_RANGE);
+	}
 
-    //
-    // Set the number of clocks per microsecond to enable the Flash controller
-    // to properly program the Flash.
-    //
-    FlashUsecSet(SysCtlClockGet() / 1000000);
+	// Save the characteristics of the EEPROM Emulation area. Mask off the
+	// lower bits of the addresses to ensure that they are 4K aligned.
+	g_pucEEPROMStart = (unsigned char *)(ulStart & ~(EEPROM_BOUNDARY - 1));
+	g_pucEEPROMEnd = (unsigned char *)(ulEnd & ~(EEPROM_BOUNDARY - 1));
+	g_ulEEPROMPgSize = ulSize;
 
-    //
-    // Get the active page count.
-    //
-    ucActivePgCnt = GetActivePageCount();
-    
-    //
-    // If there are no active pages, execute the following.  This will be true
-    // for a fresh start and can also be true if a reset or power-down occurs
-    // during a clear operation.
-    //
-    if(ucActivePgCnt == 0)
-    {
-        //
-        // If there are not any used pages, then this is a fresh start.
-        //
-        if(GetUsedPageCount() == 0)
-        {
-            //
-            // Erase the first page.
-            //
-            if(PageErase(g_pucEEPROMStart))
-            {
-                //
-                // Return the proper error.
-                //
-                return(ERR_PG_ERASE);
-            }
+	// Set the number of clocks per microsecond to enable the Flash controller
+	// to properly program the Flash.
+	FlashUsecSet(SysCtlClockGet() / 1000000);
 
-			//
+	// Get the active page count.
+	ucActivePgCnt = GetActivePageCount();
+
+	// If there are no active pages, execute the following.  This will be true
+	// for a fresh start and can also be true if a reset or power-down occurs
+	// during a clear operation.
+	if(ucActivePgCnt == 0)
+	{
+		// If there are not any used pages, then this is a fresh start.
+		if(GetUsedPageCount() == 0)
+		{
+			// Erase the first page.
+			if(PageErase(g_pucEEPROMStart))
+			{
+				// Return the proper error.
+				return(ERR_PG_ERASE);
+			}
+
 			// The active status count will be 0.
-			//
 			ulActiveStatusCnt = 0;
 
-            //
-            // Mark the new page as active. Since this is a fresh start
-            // start the counter at 0.
-            //
-            if(PageDataWrite(&ulActiveStatusCnt, g_pucEEPROMStart, 4))
-            {
-                //
-                // Return the proper error.
-                //
-                return(ERR_PG_WRITE);
-            }
+			// Mark the new page as active. Since this is a fresh start
+			// start the counter at 0.
+			if(PageDataWrite(&ulActiveStatusCnt, g_pucEEPROMStart, 4))
+			{
+				// Return the proper error.
+				return(ERR_PG_WRITE);
+			}
 
-            //
-            // Save the active page pointer.
-            //
-            g_pucActivePage = g_pucEEPROMStart;
-    
-            //
-            // Save the next available entry.
-            //
-            g_pucNextAvailEntry = g_pucEEPROMStart + 8;
-        }
-        
-        //
-        // Else, a reset must have occurred before a clear operation could
-        // complete.  This is known since there are used pages but no active
-        // pages.
-        //
-        else
-        {
-            //
-            // Get the beginning address of the most recently used page.
-            //
-            pucPageAddr = GetMostRecentlyUsedPage();
-            
-            //
-            // Get the active status counter for the most recently used
-            // page.  Then add one to it for the next page.
-            //
-            ulActiveStatusCnt = *(unsigned long *)pucPageAddr + 1;
-            
-            //
-            // Calculate the address of the page just after the most
-            // recently used.
-            //
-            pucPageAddr = ((pucPageAddr + g_ulEEPROMPgSize) < g_pucEEPROMEnd) ?
-                          (pucPageAddr + g_ulEEPROMPgSize) :
-                          g_pucEEPROMStart;
-            
-            //
-            // Erase this page.
-            //
-            if(PageErase(pucPageAddr))
-            {
-                //
-                // Return the proper error.
-                //
-                return(ERR_PG_ERASE);
-            }
+			// Save the active page pointer.
+			g_pucActivePage = g_pucEEPROMStart;
 
-            //
-            // Mark this page as active.
-            //
-            if(PageDataWrite(&ulActiveStatusCnt, pucPageAddr, 4))
-            {
-                //
-                // Return the proper error.
-                //
-                return(ERR_PG_WRITE);
-            }
-
-            //
-            // Save the active page pointer.
-            //
-            g_pucActivePage = pucPageAddr;
-    
-            //
-            // Save the next available entry.
-            //
-            g_pucNextAvailEntry = pucPageAddr + 8;
-        }
-    }
-    
-    //
-    // Else, if there is 1 active page, execute the following.  This will be
-    // true for a normal start where the EEPROM has been previously
-    // initialized and can also be true if a reset or power-down occurs during
-    // a clear operation.
-    //
-    else if(ucActivePgCnt == 1)
-    {
-        //
-        // Loop through the pages.
-        //	
-        for(pucActivePg = g_pucEEPROMStart; pucActivePg < g_pucEEPROMEnd;
-            pucActivePg += g_ulEEPROMPgSize)
-        {
-            //
-            // Is this the active page?
-            //
-            if(PageIsActive(pucActivePg))
-            {
-                //
-                // Break out of the loop.
-                //
-                break;
-            }
-        }
-        
-        //
-        // Now calculate the address of the page before the active page.
-        //
-        pucPageAddr = (pucActivePg == g_pucEEPROMStart) ?
-                      (g_pucEEPROMEnd - g_ulEEPROMPgSize) :
-                      (pucActivePg - g_ulEEPROMPgSize);
-                    
-        //
-        // Check to see if the page before has been used.
-        //
-        if(PageIsUsed(pucPageAddr))
-        {
-            //
-            // Check to see that the used page counter is one less than the 
-			// active page counter.
-            //
-            if(*(unsigned long*)pucPageAddr == 
-			   (*(unsigned long*)pucActivePg - 1))
-            {
-                //
-                // This is a normal start. Save the active page pointer.
-                //
-                g_pucActivePage = pucActivePg;
-        
-                //
-                // Save the next available entry.
-                //
-                g_pucNextAvailEntry = GetNextAvailEntry();					
-            }
-            
-            //
-            // Else, a reset must have occurred during the page erase or
-			// programming the the active status counter of a 
-			// clear operation to leave the EEPROM in this state.
-            //
-            else
-            {
-                //
-                // Erase the page that was marked active.  It is incorrectly
-                // marked active due to the counter being off.
-                //
-                if(PageErase(pucActivePg))
-                {
-                    //
-                    // Return the proper error.
-                    //
-                    return(ERR_PG_ERASE);
-                }
-                
-                //
-                // Get the active status counter for the most recently used
-                // page.  Then add one to it for the next page.
-                //
-                ulActiveStatusCnt = *(unsigned long *)pucPageAddr + 1;
-                
-                //
-                // Mark this page as active.
-                //
-                if(PageDataWrite(&ulActiveStatusCnt, pucActivePg, 4))
-                {
-                    //
-                    // Return the proper error.
-                    //
-                    return(ERR_PG_WRITE);
-                }
-                
-                //
-                // Save the active page pointer.
-                //
-                g_pucActivePage = pucActivePg;
-        
-                //
-                // Save the next available entry.
-                //
-                g_pucNextAvailEntry = pucActivePg + 8;
-            }
-        }
-        
-        //
-        // Else, the page before the active one has not been used yet.
-        //
-        else
-        {
-            //
-            // This is a normal start. Save the active page pointer.
-            //
-            g_pucActivePage = pucActivePg;
-            
-            //
-            // Save the next available entry.
-            //
-            g_pucNextAvailEntry = GetNextAvailEntry();					
-        }
-    }
-
-    //
-    // Else, if there are 2 active pages, execute the following.  This should
-    // only occur if a reset or power-down occurs during a page swap operation.
-    // In this case, one of the active pages must be full or else PageSwap()
-    // would not have been called.
-    //
-    else if(ucActivePgCnt == 2)
-    {
-		//
-		// Initially set bFullPgFound to false;
-		//
-		bFullPgFound = false;
-
-        //
-        // Loop through the pages.
-        //
-        for(pucActivePg = g_pucEEPROMStart; pucActivePg < g_pucEEPROMEnd;
-            pucActivePg += g_ulEEPROMPgSize)
-        {
-            //
-            // Is this the active page?
-            //
-            if(PageIsActive(pucActivePg))
-            {
-                //
-                // Is the page full?
-                //
-                if(*(unsigned long*)(pucActivePg + g_ulEEPROMPgSize - 4)
-                   != 0xFFFFFFFF)
-                {
-                    //
-					// Set the status to true
-					//
-					bFullPgFound = true;
-
-					//
-                    // Then the page is full.  Break out of the loop.
-                    //
-                    break;
-                }
-            }
-        }
-        
-        //
-		// Was a full page found?
-		//
-		if(bFullPgFound == true)
-		{
-			//
-	        // Now, the full page is pointed to by pucActivePg.  Save this as
-            // the active page.  PageSwap() will be called again on the next
-            // write.
-	        //
-	        g_pucActivePage = pucActivePg;
-	        
-	        //
-	        // Save the next available entry. It is the location just after
-	        // the end of the page since the page is full.  This will cause
-	        // PageSwap() to be called on the next write.
-	        //
-	        g_pucNextAvailEntry = pucActivePg + g_ulEEPROMPgSize;
+			// Save the next available entry.
+			g_pucNextAvailEntry = g_pucEEPROMStart + 8;
 		}
-		
-		//
-		// Else, this is not an expected case.  Report the error.
-		//
+
+		// Else, a reset must have occurred before a clear operation could
+		// complete.  This is known since there are used pages but no active
+		// pages.
 		else
 		{
-			//
-            // Return the proper error.
-            //
-            return(ERR_TWO_ACTIVE_NO_FULL);	
+			// Get the beginning address of the most recently used page.
+			pucPageAddr = GetMostRecentlyUsedPage();
+
+			// Get the active status counter for the most recently used
+			// page.  Then add one to it for the next page.
+			ulActiveStatusCnt = *(unsigned long *)pucPageAddr + 1;
+
+			// Calculate the address of the page just after the most
+			// recently used.
+			pucPageAddr = ((pucPageAddr + g_ulEEPROMPgSize) < g_pucEEPROMEnd) ?
+					(pucPageAddr + g_ulEEPROMPgSize) :
+					g_pucEEPROMStart;
+
+			// Erase this page.
+			if(PageErase(pucPageAddr))
+			{
+				// Return the proper error.
+				return(ERR_PG_ERASE);
+			}
+
+			// Mark this page as active.
+			if(PageDataWrite(&ulActiveStatusCnt, pucPageAddr, 4))
+			{
+				// Return the proper error.
+				return(ERR_PG_WRITE);
+			}
+
+			// Save the active page pointer.
+			g_pucActivePage = pucPageAddr;
+
+			// Save the next available entry.
+			g_pucNextAvailEntry = pucPageAddr + 8;
 		}
-    }
+	}
 
-    //
-    // Else there are more than 2 active pages.  This should never happen.
-    //
-    else
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_ACTIVE_PG_CNT);
-    }
+	// Else, if there is 1 active page, execute the following.  This will be
+	// true for a normal start where the EEPROM has been previously
+	// initialized and can also be true if a reset or power-down occurs during
+	// a clear operation.
+	else if(ucActivePgCnt == 1)
+	{
+		// Loop through the pages.
+		for(pucActivePg = g_pucEEPROMStart; pucActivePg < g_pucEEPROMEnd;
+				pucActivePg += g_ulEEPROMPgSize)
+		{
+			// Is this the active page?
+			if(PageIsActive(pucActivePg))
+			{
+				// Break out of the loop.
+				break;
+			}
+		}
 
-    //
-    // The EEPROM has been initialized.
-    //
-    g_bEEPROMInitialized = true;
+		// Now calculate the address of the page before the active page.
+		pucPageAddr = (pucActivePg == g_pucEEPROMStart) ?
+				(g_pucEEPROMEnd - g_ulEEPROMPgSize) :
+				(pucActivePg - g_ulEEPROMPgSize);
 
-    //
-    // Return indicating that no error occurred.
-    //
-    return(0);
+		// Check to see if the page before has been used.
+		if(PageIsUsed(pucPageAddr))
+		{
+			// Check to see that the used page counter is one less than the
+			// active page counter.
+			if(*(unsigned long*)pucPageAddr ==
+					(*(unsigned long*)pucActivePg - 1))
+			{
+				// This is a normal start. Save the active page pointer.
+				g_pucActivePage = pucActivePg;
+
+				// Save the next available entry.
+				g_pucNextAvailEntry = GetNextAvailEntry();
+			}
+
+			// Else, a reset must have occurred during the page erase or
+			// programming the the active status counter of a 
+			// clear operation to leave the EEPROM in this state.
+			else
+			{
+				// Erase the page that was marked active.  It is incorrectly
+				// marked active due to the counter being off.
+				if(PageErase(pucActivePg))
+				{
+					// Return the proper error.
+					return(ERR_PG_ERASE);
+				}
+
+				// Get the active status counter for the most recently used
+				// page.  Then add one to it for the next page.
+				ulActiveStatusCnt = *(unsigned long *)pucPageAddr + 1;
+
+				// Mark this page as active.
+				if(PageDataWrite(&ulActiveStatusCnt, pucActivePg, 4))
+				{
+					// Return the proper error.
+					return(ERR_PG_WRITE);
+				}
+
+				// Save the active page pointer.
+				g_pucActivePage = pucActivePg;
+
+				// Save the next available entry.
+				g_pucNextAvailEntry = pucActivePg + 8;
+			}
+		}
+
+		// Else, the page before the active one has not been used yet.
+		else
+		{
+			// This is a normal start. Save the active page pointer.
+			g_pucActivePage = pucActivePg;
+
+			// Save the next available entry.
+			g_pucNextAvailEntry = GetNextAvailEntry();
+		}
+	}
+
+	// Else, if there are 2 active pages, execute the following.  This should
+	// only occur if a reset or power-down occurs during a page swap operation.
+	// In this case, one of the active pages must be full or else PageSwap()
+	// would not have been called.
+	else if(ucActivePgCnt == 2)
+	{
+		// Initially set bFullPgFound to false;
+		bFullPgFound = false;
+
+		// Loop through the pages.
+		for(pucActivePg = g_pucEEPROMStart; pucActivePg < g_pucEEPROMEnd;
+				pucActivePg += g_ulEEPROMPgSize)
+		{
+			// Is this the active page?
+			if(PageIsActive(pucActivePg))
+			{
+				// Is the page full?
+				if(*(unsigned long*)(pucActivePg + g_ulEEPROMPgSize - 4)
+						!= 0xFFFFFFFF)
+				{
+					// Set the status to true
+					bFullPgFound = true;
+
+					// Then the page is full.  Break out of the loop.
+					break;
+				}
+			}
+		}
+
+		// Was a full page found?
+		if(bFullPgFound == true)
+		{
+			// Now, the full page is pointed to by pucActivePg.  Save this as
+			// the active page.  PageSwap() will be called again on the next
+			// write.
+			g_pucActivePage = pucActivePg;
+
+			// Save the next available entry. It is the location just after
+			// the end of the page since the page is full.  This will cause
+			// PageSwap() to be called on the next write.
+			g_pucNextAvailEntry = pucActivePg + g_ulEEPROMPgSize;
+		}
+
+		// Else, this is not an expected case.  Report the error.
+		else
+		{
+			// Return the proper error.
+			return(ERR_TWO_ACTIVE_NO_FULL);
+		}
+	}
+
+	// Else there are more than 2 active pages.  This should never happen.
+	else
+	{
+		// Return the proper error.
+		return(ERR_ACTIVE_PG_CNT);
+	}
+
+	// The EEPROM has been initialized.
+	g_bEEPROMInitialized = true;
+
+	// Return indicating that no error occurred.
+	return(0);
 }
 
 //*****************************************************************************
@@ -1311,80 +993,55 @@ SoftEEPROMInit(unsigned long ulStart, unsigned long ulEnd,
 //
 //*****************************************************************************
 long
-SoftEEPROMWrite(unsigned short ucID, unsigned short usData)
+SoftEEPROMWrite(unsigned short ucID, /*unsigned*/ short usData)
 {
-    unsigned long ulEntry;
-    long lReturnCode;
+	unsigned long ulEntry;
+	long lReturnCode;
 
-    //
-    // Has the EEPROM been initialized?  If not, return the error.
-    //
-    if(!g_bEEPROMInitialized)
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_NOT_INIT);
-    }
+	// Has the EEPROM been initialized?  If not, return the error.
+	if(!g_bEEPROMInitialized)
+	{
+		// Return the proper error.
+		return(ERR_NOT_INIT);
+	}
 
-    //
-    // Is the ID specified a valid ID?  If not, return the error.
-    //
-    if(ucID >= NUM_IDS)
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_ILLEGAL_ID);
-    }
+	// Is the ID specified a valid ID?  If not, return the error.
+	if(ucID >= NUM_IDS)
+	{
+		// Return the proper error.
+		return(ERR_ILLEGAL_ID);
+	}
 
-    //
-    // If the next available entry location is outside of the currently active
-    // page, then we need to call PageSwap.
-    //
-    if(g_pucNextAvailEntry >= (g_pucActivePage + g_ulEEPROMPgSize))
-    {
-        //
-        // Call PageSwap.
-        //
-        lReturnCode = PageSwap(g_pucActivePage);
-        
-        //
-        // Was there a failure?  If so, return the failure code.
-        //
-        if(lReturnCode != 0)
-        {
-            return(lReturnCode);
-        }
-    }
-    
-    //
-    // Calculate the entry.
-    //
-    ulEntry = (0 | (ucID << 24) | (usData));
+	// If the next available entry location is outside of the currently active
+	// page, then we need to call PageSwap.
+	if(g_pucNextAvailEntry >= (g_pucActivePage + g_ulEEPROMPgSize))
+	{
+		// Call PageSwap.
+		lReturnCode = PageSwap(g_pucActivePage);
 
-    //
-    // Write the entry to the next available spot in the active page.
-    //
-    if(PageDataWrite(&ulEntry, g_pucNextAvailEntry, 4))
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_PG_WRITE);
-    }
-    
-    //
-    // Increment the next available index variable
-    //
-    g_pucNextAvailEntry += 4;
+		// Was there a failure?  If so, return the failure code.
+		if(lReturnCode != 0)
+		{
+			return(lReturnCode);
+		}
+	}
 
-    //
-    // Return indicating that no error occurred.
-    //
-    return(0);
+	// Calculate the entry.
+	ulEntry = (0 | (ucID << 24) | (usData & 0x0000FFFF));
+
+	// Write the entry to the next available spot in the active page.
+	if(PageDataWrite(&ulEntry, g_pucNextAvailEntry, 4))
+	{
+		// Return the proper error.
+		return(ERR_PG_WRITE);
+	}
+
+	// Increment the next available index variable
+	g_pucNextAvailEntry += 4;
+
+	// Return indicating that no error occurred.
+	return(0);
 }
-
 
 //*****************************************************************************
 //
@@ -1409,67 +1066,47 @@ SoftEEPROMWrite(unsigned short ucID, unsigned short usData)
 //
 //*****************************************************************************
 long
-SoftEEPROMRead(unsigned char ucID, unsigned short *pusData,
-               tBoolean *pbFound)
+SoftEEPROMRead(unsigned char ucID, /*unsigned*/ short *pusData,
+		tBoolean *pbFound)
 {
-    unsigned char* pucEntry;
+	unsigned char* pucEntry;
 
-    //
-    // Has the EEPROM been initialized?  If not, return the error.
-    //
-    if(!g_bEEPROMInitialized)
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_NOT_INIT);
-    }
+	// Has the EEPROM been initialized?  If not, return the error.
+	if(!g_bEEPROMInitialized)
+	{
+		// Return the proper error.
+		return(ERR_NOT_INIT);
+	}
 
-    //
-    // Is the ID specified a valid ID?  If not, return the error.
-    //
-    if(ucID > (NUM_IDS - 1))
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_ILLEGAL_ID);
-    }
-    
-    //
-    // Initially set pbFound to false and pusData to 0xFFFF
-    //
-    *pbFound = false;
-    *pusData = 0xFFFF;
-    
-    //
-    // Loop from the last entry in the EEPROM page to the beginning.
-    //
-    for(pucEntry = g_pucNextAvailEntry - 4; pucEntry >= g_pucActivePage + 8;
-        pucEntry -= 4)
-    {
-        //
-        // Does the ID of this entry match the specified ID?
-        //
-        if(((*(unsigned long*)pucEntry) >> 24) == ucID)
-        {
-            //
-            // Get the data and set bFound to true.
-            //
-            *pusData = (*(unsigned long*)pucEntry) & 0xFFFF;
-            *pbFound = true;
-            
-            //
-            // Break out of the loop.
-            //
-            break;
-        }
-    }
+	// Is the ID specified a valid ID?  If not, return the error.
+	if(ucID > (NUM_IDS - 1))
+	{
+		// Return the proper error.
+		return(ERR_ILLEGAL_ID);
+	}
 
-    //
-    // Return indicating that no error occurred.
-    //
-    return(0);
+	// Initially set pbFound to false and pusData to 0xFFFF
+	*pbFound = false;
+	*pusData = 0xFFFF;
+
+	// Loop from the last entry in the EEPROM page to the beginning.
+	for(pucEntry = g_pucNextAvailEntry - 4; pucEntry >= g_pucActivePage + 8;
+			pucEntry -= 4)
+	{
+		// Does the ID of this entry match the specified ID?
+		if(((*(unsigned long*)pucEntry) >> 24) == ucID)
+		{
+			// Get the data and set bFound to true.
+			*pusData = (*(/*unsigned*/ long*)pucEntry) & 0xFFFF;
+			*pbFound = true;
+
+			// Break out of the loop.
+			break;
+		}
+	}
+
+	// Return indicating that no error occurred.
+	return(0);
 }
 
 
@@ -1494,84 +1131,83 @@ SoftEEPROMRead(unsigned char ucID, unsigned short *pusData,
 long
 SoftEEPROMClear(void)
 {
-    unsigned long ulStatus;
+	unsigned long ulStatus;
 	unsigned char* pucNewPageAddr;
 
-    //
-    // Has the EEPROM been initialized?  If not, return the error.
-    //
-    if(!g_bEEPROMInitialized)
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_NOT_INIT);
-    }
+	// Has the EEPROM been initialized?  If not, return the error.
+	if(!g_bEEPROMInitialized)
+	{
+		// Return the proper error.
+		return(ERR_NOT_INIT);
+	}
 
-    //
-    // Step 1) Mark the current page as used.
-    //
+	// Step 1) Mark the current page as used.
 	ulStatus = 	~(ERASED_WORD);
-    if(PageDataWrite(&ulStatus, g_pucActivePage + 4, 4))
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_PG_WRITE);
-    }
+	if(PageDataWrite(&ulStatus, g_pucActivePage + 4, 4))
+	{
+		// Return the proper error.
+		return(ERR_PG_WRITE);
+	}
 
-    //
-    // Get new page pointer.
-    //
-    pucNewPageAddr = ((g_pucActivePage + g_ulEEPROMPgSize) < g_pucEEPROMEnd) ?
-                     (g_pucActivePage + g_ulEEPROMPgSize) :
-                     g_pucEEPROMStart;
-                    
-
-    //
-    // Step 2) Erase the new page.
-    //
-    if(PageErase(pucNewPageAddr))
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_PG_ERASE);
-    }
+	// Get new page pointer.
+	pucNewPageAddr = ((g_pucActivePage + g_ulEEPROMPgSize) < g_pucEEPROMEnd) ?
+			(g_pucActivePage + g_ulEEPROMPgSize) :
+			g_pucEEPROMStart;
 
 
-    //
-    // Step 3) Mark the new page as active.  Increment the active count by one
-    // from the previous page.
-    //
+	// Step 2) Erase the new page.
+	if(PageErase(pucNewPageAddr))
+	{
+		// Return the proper error.
+		return(ERR_PG_ERASE);
+	}
+
+
+	// Step 3) Mark the new page as active.  Increment the active count by one
+	// from the previous page.
 	ulStatus = (*(unsigned long*)g_pucActivePage) + 1;
-    if(PageDataWrite(&ulStatus, pucNewPageAddr, 4))
-    {
-        //
-        // Return the proper error.
-        //
-        return(ERR_PG_WRITE);
-    }
+	if(PageDataWrite(&ulStatus, pucNewPageAddr, 4))
+	{
+		// Return the proper error.
+		return(ERR_PG_WRITE);
+	}
 
-    //
-    // Now save the pointer to the beginning of the new active page and return.
-    //
-    g_pucActivePage = pucNewPageAddr;
+	// Now save the pointer to the beginning of the new active page and return.
+	g_pucActivePage = pucNewPageAddr;
 
-    //
-    // The next available entry location is the first entry in the new page.
-    //
-    g_pucNextAvailEntry = pucNewPageAddr + 8;
+	// The next available entry location is the first entry in the new page.
+	g_pucNextAvailEntry = pucNewPageAddr + 8;
 
-    //
-    // Return indicating that no error occurred.
-    //
-    return(0);
+	// Return indicating that no error occurred.
+	return(0);
 }
 
-//*****************************************************************************
-//
-// Close the Doxygen group.
-//! @}
-//
-//*****************************************************************************
+
+void SoftEEPROMWriteDouble(unsigned short ucID, double data)
+{
+	short temp[4];
+
+	memcpy(temp, &data, sizeof(data));
+
+	SoftEEPROMWrite(ucID,   temp[0]);
+	SoftEEPROMWrite(ucID+1, temp[1]);
+	SoftEEPROMWrite(ucID+2, temp[2]);
+	SoftEEPROMWrite(ucID+3, temp[3]);
+
+}
+
+double SoftEEPROMReadDouble(unsigned short uCID)
+{
+	tBoolean *pbFound = 0;
+	short temp[4];
+	double ret = 0.0;
+
+	SoftEEPROMRead(uCID,   &temp[0], pbFound);
+	SoftEEPROMRead(uCID+1, &temp[1], pbFound);
+	SoftEEPROMRead(uCID+2, &temp[2], pbFound);
+	SoftEEPROMRead(uCID+3, &temp[3], pbFound);
+
+	memcpy(&ret, temp, sizeof(ret));
+
+	return ret;
+}

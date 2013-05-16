@@ -151,10 +151,14 @@ extern "C"
 //*****************************************************************************
 extern long SoftEEPROMInit(unsigned long ulStart, unsigned long ulEnd,
                            unsigned long ulSize);
-extern long SoftEEPROMRead(unsigned char usID, unsigned short *pusData, 
+extern long SoftEEPROMRead(unsigned char usID, /*unsigned*/ short *pusData,
                            tBoolean *pbFound);
-extern long SoftEEPROMWrite(unsigned short usID, unsigned short usData);
+extern long SoftEEPROMWrite(unsigned short usID, /*unsigned*/ short usData);
 extern long SoftEEPROMClear(void);
+
+extern void SoftEEPROMWriteDouble(unsigned short ucID, double data);
+extern double SoftEEPROMReadDouble(unsigned short uCID);
+
 
 //*****************************************************************************
 //
