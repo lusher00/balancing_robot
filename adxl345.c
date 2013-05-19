@@ -15,10 +15,10 @@ void accel_init()
     int32_t accel_x_cal=0, accel_y_cal=0, accel_z_cal=0;
   
     i2c_tx_single(ACCEL_ADDRESS, 0x2D, 0x08);
-    i2c_tx_single(ACCEL_ADDRESS, 0x31, 0x00);
+    i2c_tx_single(ACCEL_ADDRESS, 0x31, 0x08);
     // Disable lowpower mode, set the ODR at 800Hz.
     // 0b1000 = 25Hz and each LSB represents a doubling in bandwidth
-    i2c_tx_single(ACCEL_ADDRESS, 0x2C, 0x1F);
+    i2c_tx_single(ACCEL_ADDRESS, 0x2C, 0x1D);
         
     //  Calibrate the accelerometer
     for(i=0; i<1000; i++)

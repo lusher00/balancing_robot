@@ -53,6 +53,9 @@ extern void gyro_get_xyz_raw(int16_t* gyro_x_raw, int16_t* gyro_y_raw, int16_t* 
 extern void gyro_get_xyz_avg(int16_t* gyro_x_avg, int16_t* gyro_y_avg, int16_t* gyro_z_avg);
 extern void gyro_get_xyz_cal(int16_t* gyro_x_cal, int16_t* gyro_y_cal, int16_t* gyro_z_cal, uint8_t bAvg);
 
+extern void gyro_get_y_raw(int16_t* gyro_y_raw);
+extern void gyro_get_y_cal(int16_t* gyro_y_cal, uint8_t bAvg);
+
 extern void gyro_init(void);
 
 #endif

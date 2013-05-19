@@ -6,5 +6,6 @@ extern void command_handler_init(void);
 extern void print_params(void);
 extern void print_update(void);
 extern void print_angle(void);
+extern void print_debug(void);
 
 #endif

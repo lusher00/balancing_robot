@@ -6,7 +6,7 @@
 
 #define ERROR_ARRAY_SIZE 1024
 
-#define SCALING_FACTOR  1024.0
+#define SCALING_FACTOR  1.0
 
 typedef struct MOTOR_DATA{
     int16_t lastProcessValue;

@@ -23,6 +23,13 @@ extern int motor_val;
 
 extern double kP, kI, kD;
 
+
+extern uint32_t delta_t;
+extern int16_t gyro_x, gyro_y, gyro_z;
+extern int16_t accel_x, accel_y, accel_z;
+
+
+
 char buff[128];
 
 void command_handler_init()
@@ -31,18 +38,36 @@ void command_handler_init()
 	UARTEchoSet(false);
 }
 
+void print_debug()
+{
+	memset(buff, '\0', sizeof(buff));
+
+	sprintf(buff, "%s; %5d; %5d; %5d; %5d; %5d; %5d; %5d; %3.3lf\r\n",
+			"DEBUG",
+			delta_t,
+			accel_x,
+			accel_y,
+			accel_z,
+			gyro_x,
+			gyro_y,
+			gyro_z,
+			filtered_ang
+			);
+	UART0Send(buff, strlen(buff));
+}
+
 void print_params()
 {
 	memset(buff, '\0', sizeof(buff));
 
-	sprintf(buff, "%s; %d; %d; %d; %d; %d\r\n",
+	sprintf(buff, "%s; %d; %3.3lf; %3.3lf; %3.3lf; %3.3lf\r\n",
 			"PARAMS",
 			6,
 			kP,
 			kI,
 			kD,
 			zero_ang);
-	UART0Send(buff, strlen(buff));
+	UART1Send(buff, strlen(buff));
 }
 
 void print_update()
@@ -59,7 +84,7 @@ void print_update()
 			d_get(&pid_motor)
 	);
 
-	UART0Send(buff, strlen(buff));
+	UART1Send(buff, strlen(buff));
 }
 
 void print_angle()
@@ -83,11 +108,16 @@ void command_handler()
 
 			// Changed the angle at which the bot balances
 			if(strcmp(pResult, "ANG") == 0){
-				zero_ang = atoi(strtok(0,delim));
+				zero_ang = atof(strtok(0,delim));
 				//SoftEEPROMWrite(ANG_ID, zero_ang);
 
-			// Update P, I and D gains
-			}else if(strcmp(pResult, "PID") == 0){
+			// Changed the angle at which the bot balances
+			}else if(strcmp(pResult, "ANG!") == 0){
+				zero_ang = atof(strtok(0,delim));
+				SoftEEPROMWriteDouble(ANG_ID, zero_ang);
+
+					// Update P, I and D gains
+			}else if(strcmp(pResult, "PID!") == 0){
 				kP = atof(strtok(0, delim));
 				kI = atof(strtok(0, delim));
 				kD = atof(strtok(0, delim));
@@ -100,25 +130,43 @@ void command_handler()
 
 			// Update P gain
 			}else if(strcmp(pResult, "P") == 0){
-				kP = atoi(strtok(0, delim));
+				kP = atof(strtok(0, delim));
 				p_update(kP, &pid_motor);
 
-				// Update I gain
+			// Update P gain
+			}else if(strcmp(pResult, "P!") == 0){
+				kP = atof(strtok(0, delim));
+				p_update(kP, &pid_motor);
+				SoftEEPROMWriteDouble(kP_ID, kP);
+
+			// Update I gain
 			}else if(strcmp(pResult, "I") == 0){
-				kI = atoi(strtok(0, delim));
+				kI = atof(strtok(0, delim));
 				i_update(kI, &pid_motor);
 
-				// Update D gain
+			// Update I gain
+			}else if(strcmp(pResult, "I!") == 0){
+				kI = atof(strtok(0, delim));
+				i_update(kI, &pid_motor);
+				SoftEEPROMWriteDouble(kI_ID, kI);
+
+			// Update D gain
 			}else if(strcmp(pResult, "D") == 0){
-				kD = atoi(strtok(0, delim));
+				kD = atof(strtok(0, delim));
 				d_update(kD, &pid_motor);
 
-				// Update the position
+			// Update D gain
+			}else if(strcmp(pResult, "D!") == 0){
+				kD = atof(strtok(0, delim));
+				d_update(kD, &pid_motor);
+				SoftEEPROMWriteDouble(kD_ID, kD);
+
+			// Update the position
 			}else if(strcmp(pResult, "POS") == 0){
 				QEIPositionSet(QEI0_BASE, atoi(strtok(0, delim)));
 				QEIPositionSet(QEI1_BASE, atoi(strtok(0, delim)));
 
-				// Zero out everything
+			// Zero out everything
 			}else if(strcmp(pResult, "ZERO") == 0){
 				QEIPositionSet(QEI0_BASE, 0);
 				QEIPositionSet(QEI1_BASE, 0);

@@ -93,7 +93,7 @@ uint8_t halted_latch = 0;
 
 double g_gyroScale;
 
-
+double COMP_C = 0.9975;
 
 
 /*******************************************************************
@@ -108,7 +108,7 @@ main(void)
 	// Set the clocking to run at 80 MHz from the PLL.
 	// (Well we were at 80MHz with SYSCTL_SYSDIV_2_5 but according to the errata you can't
 	// write to FLASH at frequencies greater than 50MHz so I slowed it down. I supposed we
-	// could slow the clock down when writing to FLASH but then we need to find out how long
+	// could slow the clock down when writing to FLASH but then we need to find out     how long
 	// it takes for the clock to stabilize. This on at the bottom of my list of things to do
 	// for now.)
 	SysCtlClockSet(SYSCTL_SYSDIV_4_5 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
@@ -151,7 +151,7 @@ main(void)
 	lEEPROMRetStatus = SoftEEPROMInit(EEPROM_START_ADDR, EEPROM_END_ADDR, EEPROM_PAGE_SIZE);
 	if(lEEPROMRetStatus != 0) UART0Send("EEprom ERROR!\n", 14);
 
-#if 1
+#if 0
 	SoftEEPROMWriteDouble(kP_ID, 10.00);
 	SoftEEPROMWriteDouble(kI_ID, 10.00);
 	SoftEEPROMWriteDouble(kD_ID, 10.00);
@@ -178,16 +178,17 @@ main(void)
 
 
 		// Read our sensors
-		accel_get_xyz_cal(&accel_x, &accel_y, &accel_z, false);
-		gyro_get_xyz_cal(&gyro_x, &gyro_y, &gyro_z, true);
+		accel_get_xyz_cal(&accel_x, &accel_y, &accel_z, true);
+		gyro_get_y_cal(&gyro_y, false);
 
 		// Calculate the pitch angle with the accelerometer only
 		R = sqrt(pow(accel_x, 2) + pow(accel_z, 2));
-		accel_pitch_ang = (acos(-accel_x / R)*(RAD_TO_DEG)) - zero_ang;
+		accel_pitch_ang = (acos(-accel_x / R)*(RAD_TO_DEG));// - zero_ang;
 		//accel_pitch_ang = (double)((atan2(accel_x, -accel_z))*RAD_TO_DEG - 90.0);
 
 		// Kalman filter
 		filtered_ang = kalman((double)accel_pitch_ang, ((double)gyro_y)*g_gyroScale, CONV_TO_SEC(delta_t));
+		//filtered_ang = (COMP_C*(filtered_ang+((double)gyro_y*g_gyroScale*CONV_TO_SEC(delta_t)))) + ((1.0-COMP_C)*(double)accel_pitch_ang);
 
 		// Skip the rest of the process until the angle stabilizes
 		if(i < 250) { i++; continue; }
@@ -196,13 +197,14 @@ main(void)
 		if(sum_delta_t >= 1000)
 		{
 			print_update();
+			print_debug();
 			//print_angle();
 			sum_delta_t = 0;
 		}
 
 		command_handler();
 
-		// If we are leaning more than +/- 30 deg off center it's hopeless.
+		// If we are leaning more than +/- FALL_ANG deg off center it's hopeless.
 		// Turn off the motors in hopes of some damage control
 		if( abs(filtered_ang) > FALL_ANG )
 		{

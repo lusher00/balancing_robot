@@ -23,6 +23,23 @@ void gyro_get_xyz_raw(int16_t* gyro_x_raw, int16_t* gyro_y_raw, int16_t* gyro_z_
     *gyro_z_raw |= (int16_t)data[5];    
 }
 
+void gyro_get_y_raw(int16_t* gyro_y_raw)
+{
+    unsigned long data[2];
+    unsigned long temp = 0;
+    unsigned long num_checks = 0;
+
+    do{
+    	temp = i2c_rx_single(GYRO_ADDRESS, L3G4200D_STATUS_REG);
+    	num_checks++;
+    }while(!(temp & 0x02));
+
+    i2c_rx_multi(GYRO_ADDRESS, L3G4200D_OUT_Y_L | 0x80 , 2, data);
+
+    *gyro_y_raw = ((int16_t)data[0])<<8;
+    *gyro_y_raw |= (int16_t)data[1];
+}
+
 uint8_t gyro_idx_new=0, gyro_idx_old=1;
 int16_t gyro_x_vals[10], gyro_y_vals[10], gyro_z_vals[10];
 int16_t gyro_x_tot=0, gyro_y_tot=0, gyro_z_tot=0;
@@ -70,6 +87,19 @@ void gyro_get_xyz_cal(int16_t* gyro_x_cal, int16_t* gyro_y_cal, int16_t* gyro_z_
 
 }
 
+void gyro_get_y_cal(int16_t* gyro_y_cal, uint8_t bAvg)
+{
+    int16_t gyro_y;
+
+    if(bAvg)
+        gyro_y = 0; // TODO
+    else
+        gyro_get_y_raw(&gyro_y);
+
+    *gyro_y_cal = gyro_y - gyro_y_offset;
+
+}
+
 void gyro_init()
 {
     int i;
@@ -98,13 +128,17 @@ void gyro_init()
     
     //  Configure CTRL_REG5
     // Enable HP & LP filters
-    i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG5, 0x12);
+    // Enable the FIFO
+    i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG5, 0xC2);
+
+    // FIFO mode = bypass
+    i2c_tx_single(GYRO_ADDRESS, L3G4200D_FIFO_CTRL_REG, 0x00);
         
     //  Configure CTRL_REG1
     //  Wake up the device 0b00001000
     //  Enable ZYX axes    0b00000ZYX
     //  and set the output data rate to 800Hz
-    i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG1, 0x4F);
+    i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG1, 0x4A);
         
     //  Calibrate the gyro
     for(i=0; i<1000; i++)
