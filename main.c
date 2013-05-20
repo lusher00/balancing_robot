@@ -8,14 +8,11 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
 #include "driverlib/interrupt.h"
-//#include "drivers/kitronix320x240x16_ssd2119_8bit.h"
-//#include "drivers/set_pinout.h"
 #include "driverlib/flash.h"
 #include "driverlib/pwm.h"
 #include "softeeprom.h"
 #include "driverlib/uart.h"
 #include "softeeprom.h"
-
 
 
 /*******************************************************************
@@ -58,16 +55,11 @@
 #define EEPROM_PAGE_SIZE (0x2000)
 #define EEPROM_END_ADDR  (EEPROM_START_ADDR + 4*EEPROM_PAGE_SIZE)
 
-#define K_P 0.0
-#define K_I 0.0
-#define K_D 0.0
-
 #define FALL_ANG 15.0
 
 #define RAD_TO_DEG (180.0/3.14159)
 #define CONV_TO_ANG(x) (double)x/100.0
 #define CONV_TO_SEC(x) (double)x/10000.0
-
 
 
 /*******************************************************************
@@ -78,24 +70,32 @@ double kP, kI, kD;
 
 uint32_t delta_t, sum_delta_t;
 
-double R, filtered_ang, accel_pitch_ang;
-
-double zero_ang;
-tBoolean *pbFound;
+double R, filtered_ang, accel_pitch_ang, zero_ang;
 
 double right_mot_gain=1.0, left_mot_gain=1.0;
-int motor_val;
+
+int16_t motor_val;
 
 int16_t gyro_x, gyro_y, gyro_z;
 int16_t accel_x, accel_y, accel_z;
-
-uint8_t halted_latch = 0;
 
 double g_gyroScale;
 
 double COMP_C = 0.9975;
 
 
+void led_init()
+{
+	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_3);
+}
+
+void led_toggle()
+{
+	static uint8_t toggle = 0;
+
+	toggle = toggle ^ 1;
+	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, (toggle<<3));
+}
 /*******************************************************************
  * MAIN()
  *******************************************************************/
@@ -104,6 +104,7 @@ main(void)
 {
 	long lEEPROMRetStatus;
 	uint16_t i=0;
+	uint8_t halted_latch = 0;
 
 	// Set the clocking to run at 80 MHz from the PLL.
 	// (Well we were at 80MHz with SYSCTL_SYSDIV_2_5 but according to the errata you can't
@@ -124,9 +125,6 @@ main(void)
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOH);
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
 
-	// Setup the user LED
-	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_3);
-
 	// Enable processor interrupts.
 	IntMasterEnable();
 
@@ -143,15 +141,18 @@ main(void)
 
 	i2c_init();
 	motor_init();
-	//qei_init();
+	qei_init();
 	gyro_init();
 	accel_init();
+	led_init();
 
 	// Initialize the EEPROM emulation region.
 	lEEPROMRetStatus = SoftEEPROMInit(EEPROM_START_ADDR, EEPROM_END_ADDR, EEPROM_PAGE_SIZE);
 	if(lEEPROMRetStatus != 0) UART0Send("EEprom ERROR!\n", 14);
 
 #if 0
+	// If ever we wanted to write some parameters to FLASH without the HMI
+	// we could do it here.
 	SoftEEPROMWriteDouble(kP_ID, 10.00);
 	SoftEEPROMWriteDouble(kI_ID, 10.00);
 	SoftEEPROMWriteDouble(kD_ID, 10.00);
@@ -176,14 +177,13 @@ main(void)
 		myTimerZero();
 		sum_delta_t += delta_t;
 
-
 		// Read our sensors
 		accel_get_xyz_cal(&accel_x, &accel_y, &accel_z, true);
 		gyro_get_y_cal(&gyro_y, false);
 
 		// Calculate the pitch angle with the accelerometer only
 		R = sqrt(pow(accel_x, 2) + pow(accel_z, 2));
-		accel_pitch_ang = (acos(-accel_x / R)*(RAD_TO_DEG));// - zero_ang;
+		accel_pitch_ang = (acos(-accel_x / R)*(RAD_TO_DEG)) - zero_ang;
 		//accel_pitch_ang = (double)((atan2(accel_x, -accel_z))*RAD_TO_DEG - 90.0);
 
 		// Kalman filter
@@ -198,10 +198,12 @@ main(void)
 		{
 			print_update();
 			print_debug();
+			led_toggle();
 			//print_angle();
 			sum_delta_t = 0;
 		}
 
+		// See if the HMI has anything to say
 		command_handler();
 
 		// If we are leaning more than +/- FALL_ANG deg off center it's hopeless.

@@ -90,7 +90,7 @@ int16_t ang_controller(double setPoint, double processValue, double delta_t, t_p
 	// It looks like the stiction in these motors is so great, by the time we're
 	// moving the integrator is too large to ever wind back down in time. This
 	// made a huge difference.
-	if(abs(pid_st->error) > 0.125)
+	if(abs(pid_st->error) >= 0.0)
 		pid_st->sumError += pid_st->error * delta_t * 0.01;
 	else
 		pid_st->sumError = 0.0;

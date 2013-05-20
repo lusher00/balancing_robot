@@ -42,7 +42,7 @@ void print_debug()
 {
 	memset(buff, '\0', sizeof(buff));
 
-	sprintf(buff, "%s; %5d; %5d; %5d; %5d; %5d; %5d; %5d; %3.3lf\r\n",
+	sprintf(buff, "%s; %5d; %5d; %5d; %5d; %5d; %5d; %5d; %3.3lf; %3d; %3d\r\n",
 			"DEBUG",
 			delta_t,
 			accel_x,
@@ -51,7 +51,9 @@ void print_debug()
 			gyro_x,
 			gyro_y,
 			gyro_z,
-			filtered_ang
+			filtered_ang,
+			QEIPositionGet(QEI0_BASE),
+			QEIPositionGet(QEI1_BASE)
 			);
 	UART0Send(buff, strlen(buff));
 }
@@ -168,8 +170,8 @@ void command_handler()
 
 			// Zero out everything
 			}else if(strcmp(pResult, "ZERO") == 0){
-				QEIPositionSet(QEI0_BASE, 0);
-				QEIPositionSet(QEI1_BASE, 0);
+				//QEIPositionSet(QEI0_BASE, 0);
+				//QEIPositionSet(QEI1_BASE, 0);
 				pid_update(0.0, 0.0, 0.0, &pid_motor);
 				i_reset(&pid_motor);
 
