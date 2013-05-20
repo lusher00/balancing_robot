@@ -46,6 +46,7 @@
 #include "my_uart.h"
 #include "my_timers.h"
 #include "main.h"
+#include "utils.h"
 
 
 /*******************************************************************
@@ -83,19 +84,16 @@ double g_gyroScale;
 
 double COMP_C = 0.9975;
 
-
-void led_init()
+double calc_rest_angle(int32_t commanded_pos)
 {
-	GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_3);
+	double ang=0.0;
+	int32_t pos=0;
+
+	pos = (QEIPositionGet(QEI0_BASE) + QEIPositionGet(QEI1_BASE)) / 2;
+	return ang;
 }
 
-void led_toggle()
-{
-	static uint8_t toggle = 0;
 
-	toggle = toggle ^ 1;
-	GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_3, (toggle<<3));
-}
 /*******************************************************************
  * MAIN()
  *******************************************************************/
