@@ -9,6 +9,7 @@
 #include "driverlib/qei.h"
 #include "softeeprom.h"
 #include "main.h"
+#include "rc_radio.h"
 
 char cmd_rx_buff[32];
 char *pResult;
@@ -17,8 +18,8 @@ char delim[] = {";"};
 // Need to find a way to eliminate all these externs...
 extern double zero_ang;
 extern double right_mot_gain, left_mot_gain;
-extern t_piddata pid_motor;
-extern double filtered_ang;
+extern t_piddata pid_ang;
+extern double filtered_ang, rest_ang;
 extern int motor_val;
 
 extern double kP, kI, kD;
@@ -27,6 +28,8 @@ extern double kP, kI, kD;
 extern uint32_t delta_t;
 extern int16_t gyro_x, gyro_y, gyro_z;
 extern int16_t accel_x, accel_y, accel_z;
+
+extern uint32_t pulse_width;
 
 
 
@@ -38,11 +41,11 @@ void command_handler_init()
 	UARTEchoSet(false);
 }
 
-void print_debug()
+void print_debug(uint8_t uart)
 {
 	memset(buff, '\0', sizeof(buff));
 
-	sprintf(buff, "%s; %5d; %5d; %5d; %5d; %5d; %5d; %5d; %3.3lf; %3d; %3d\r\n",
+	sprintf(buff, "%s; %5d; %5d; %5d; %5d; %5d; %5d; %5d; %3.3lf; %3d; %3d; %3.3lf\r\n",
 			"DEBUG",
 			delta_t,
 			accel_x,
@@ -52,13 +55,40 @@ void print_debug()
 			gyro_y,
 			gyro_z,
 			filtered_ang,
-			QEIPositionGet(QEI0_BASE),
-			QEIPositionGet(QEI1_BASE)
+			QEIPositionGet(QEI0_BASE), // right
+			QEIPositionGet(QEI1_BASE), // left
+			rest_ang
 			);
-	UART0Send(buff, strlen(buff));
+	UARTSend(buff, strlen(buff), uart);
 }
 
-void print_params()
+void print_debug2(uint8_t uart)
+{
+	memset(buff, '\0', sizeof(buff));
+
+	sprintf(buff, "%s; %5d; %3.3lf; %3.3lf; %3d; %3d\r\n",
+			"DEBUG2",
+			delta_t,
+			filtered_ang,
+			rest_ang,
+			QEIPositionGet(QEI0_BASE), // right
+			QEIPositionGet(QEI1_BASE) // left
+			);
+	UARTSend(buff, strlen(buff), uart);
+}
+
+void print_pulse_width(uint8_t uart)
+{
+	memset(buff, '\0', sizeof(buff));
+
+		sprintf(buff, "%s; %5d\r\n",
+				"PULSE WIDTH = ",
+				pulse_width
+				);
+	UARTSend(buff, strlen(buff), uart);
+}
+
+void print_params(uint8_t uart)
 {
 	memset(buff, '\0', sizeof(buff));
 
@@ -69,10 +99,10 @@ void print_params()
 			kI,
 			kD,
 			zero_ang);
-	UART1Send(buff, strlen(buff));
+	UARTSend(buff, strlen(buff), uart);
 }
 
-void print_update()
+void print_update(uint8_t uart)
 {
 	memset(buff, 0, sizeof(buff));
 
@@ -81,20 +111,20 @@ void print_update()
 			8,
 			filtered_ang,
 			motor_val,
-			p_get(&pid_motor),
-			i_get(&pid_motor),
-			d_get(&pid_motor)
+			p_get(&pid_ang),
+			i_get(&pid_ang),
+			d_get(&pid_ang)
 	);
 
-	UART1Send(buff, strlen(buff));
+	UARTSend(buff, strlen(buff), uart);
 }
 
-void print_angle()
+void print_angle(uint8_t uart)
 {
 	char buff[32];
 
 	sprintf(buff, "ANG = %3.3lf\r\n", filtered_ang);
-	UART0Send(buff, strlen(buff));
+	UARTSend(buff, strlen(buff), uart);
 }
 
 void command_handler()
@@ -128,39 +158,39 @@ void command_handler()
 				SoftEEPROMWriteDouble(kI_ID, kI);
 				SoftEEPROMWriteDouble(kD_ID, kD);
 
-				pid_update(kP, kI, kD, &pid_motor);
+				pid_update(kP, kI, kD, &pid_ang);
 
 			// Update P gain
 			}else if(strcmp(pResult, "P") == 0){
 				kP = atof(strtok(0, delim));
-				p_update(kP, &pid_motor);
+				p_update(kP, &pid_ang);
 
 			// Update P gain
 			}else if(strcmp(pResult, "P!") == 0){
 				kP = atof(strtok(0, delim));
-				p_update(kP, &pid_motor);
+				p_update(kP, &pid_ang);
 				SoftEEPROMWriteDouble(kP_ID, kP);
 
 			// Update I gain
 			}else if(strcmp(pResult, "I") == 0){
 				kI = atof(strtok(0, delim));
-				i_update(kI, &pid_motor);
+				i_update(kI, &pid_ang);
 
 			// Update I gain
 			}else if(strcmp(pResult, "I!") == 0){
 				kI = atof(strtok(0, delim));
-				i_update(kI, &pid_motor);
+				i_update(kI, &pid_ang);
 				SoftEEPROMWriteDouble(kI_ID, kI);
 
 			// Update D gain
 			}else if(strcmp(pResult, "D") == 0){
 				kD = atof(strtok(0, delim));
-				d_update(kD, &pid_motor);
+				d_update(kD, &pid_ang);
 
 			// Update D gain
 			}else if(strcmp(pResult, "D!") == 0){
 				kD = atof(strtok(0, delim));
-				d_update(kD, &pid_motor);
+				d_update(kD, &pid_ang);
 				SoftEEPROMWriteDouble(kD_ID, kD);
 
 			// Update the position
@@ -172,8 +202,8 @@ void command_handler()
 			}else if(strcmp(pResult, "ZERO") == 0){
 				//QEIPositionSet(QEI0_BASE, 0);
 				//QEIPositionSet(QEI1_BASE, 0);
-				pid_update(0.0, 0.0, 0.0, &pid_motor);
-				i_reset(&pid_motor);
+				pid_update(0.0, 0.0, 0.0, &pid_ang);
+				i_reset(&pid_ang);
 
 			}else if(strcmp(pResult, "MOTL") == 0){
 				left_mot_gain = atof(strtok(0, delim));

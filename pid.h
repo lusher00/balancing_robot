@@ -56,7 +56,7 @@ typedef struct PID_DATA{
 #define TRUE            1
 
 extern void pid_init(double p_factor, double i_factor, double d_factor, t_piddata *pid);
-extern int16_t ang_controller(double setPoint, double processValue, double delta_t, t_piddata *pid_st);
+extern int16_t pid_controller(double setPoint, double processValue, double delta_t, t_piddata *pid_st);
 
 extern void pid_update(double p_factor, double i_factor, double d_factor, t_piddata *pid);
 extern void i_reset(t_piddata *pid);

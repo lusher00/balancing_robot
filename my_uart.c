@@ -71,6 +71,23 @@ void UART1IntHandler(void)
     	UARTCharPutNonBlocking(UART0_BASE, UARTCharGetNonBlocking(UART1_BASE));
  }
 
+void UARTSend(char *pucBuffer, uint8_t len, uint8_t uart)
+{
+	unsigned long UART_BASE;
+
+	switch(uart){
+		case 0:
+			UART_BASE = UART0_BASE;
+			break;
+		case 1:
+			UART_BASE = UART1_BASE;
+			break;
+	}
+
+    while(len--)
+        UARTCharPut(UART_BASE, *pucBuffer++);
+}
+
 // Send a string to UART0.
 void UART0Send(char *pucBuffer, uint8_t len)
 {

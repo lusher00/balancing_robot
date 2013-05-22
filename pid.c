@@ -67,7 +67,7 @@ double d_get(t_piddata *pid)
 }
 
 
-int16_t ang_controller(double setPoint, double processValue, double delta_t, t_piddata *pid_st)
+int16_t pid_controller(double setPoint, double processValue, double delta_t, t_piddata *pid_st)
 {
 	int32_t ret=0;
 	//double temp=0.0;
@@ -89,13 +89,14 @@ int16_t ang_controller(double setPoint, double processValue, double delta_t, t_p
 	// If the error is less than +/-0.125 deg let's blow away the integrator.
 	// It looks like the stiction in these motors is so great, by the time we're
 	// moving the integrator is too large to ever wind back down in time. This
-	// made a huge difference.
+	// made a huge difference. (initially, I'm not using it anymore obviously,
+	// propper tuning seems to be more effective)
 	if(abs(pid_st->error) >= 0.0)
 		pid_st->sumError += pid_st->error * delta_t * 0.01;
 	else
 		pid_st->sumError = 0.0;
 
-	// Limit the error. These are huge numbers, if we ever get there were probably
+	// Limit the error. These are huge numbers, if we ever get there we're probably
 	// going to have other problems anyways.
 	if(pid_st->sumError > pid_st->maxSumError)
 		pid_st->sumError = pid_st->maxSumError;
