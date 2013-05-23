@@ -29,7 +29,7 @@ extern uint32_t delta_t;
 extern int16_t gyro_x, gyro_y, gyro_z;
 extern int16_t accel_x, accel_y, accel_z;
 
-extern uint32_t pulse_width;
+
 
 
 
@@ -77,14 +77,17 @@ void print_debug2(uint8_t uart)
 	UARTSend(buff, strlen(buff), uart);
 }
 
-void print_pulse_width(uint8_t uart)
+void print_control_surfaces(uint8_t uart)
 {
 	memset(buff, '\0', sizeof(buff));
 
-		sprintf(buff, "%s; %5d\r\n",
-				"PULSE WIDTH = ",
-				pulse_width
-				);
+	sprintf(buff, "ELEVATOR = %5u; RUDDER = %5u; AILERON = %5u; THROTTLE = %5u\r\n",
+			get_rc_pulse_width(PULSE_ELEVATOR),
+			get_rc_pulse_width(PULSE_RUDDER),
+			get_rc_pulse_width(PULSE_AILERON),
+			get_rc_pulse_width(PULSE_THROTTLE)
+			);
+
 	UARTSend(buff, strlen(buff), uart);
 }
 

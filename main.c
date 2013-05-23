@@ -221,7 +221,7 @@ main(void)
 		{
 			//print_update(1);
 			//print_debug2(1);
-			print_pulse_width(0);
+			print_control_surfaces(0);
 			led_toggle();
 			//print_angle();
 			sum_delta_t = 0;
@@ -230,7 +230,7 @@ main(void)
 		// See if the HMI has anything to say
 		command_handler();
 
-		continue;
+		//continue;
 
 		rest_ang = calc_rest_angle(0);
 
