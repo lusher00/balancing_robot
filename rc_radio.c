@@ -27,9 +27,9 @@ static void timer2_init()
 
 void rc_radio_init()
 {
-	GPIOPinTypeGPIOInput(GPIO_PORTH_BASE, GPIO_PIN_5 | GPIO_PIN_2);
-	GPIOIntTypeSet(GPIO_PORTH_BASE, GPIO_PIN_5 | GPIO_PIN_2, GPIO_BOTH_EDGES);
-	GPIOPinIntEnable(GPIO_PORTH_BASE, GPIO_PIN_5 | GPIO_PIN_2);
+	GPIOPinTypeGPIOInput(GPIO_PORTH_BASE, GPIO_RADIO_PINS);
+	GPIOIntTypeSet(GPIO_PORTH_BASE, GPIO_RADIO_PINS, GPIO_BOTH_EDGES);
+	GPIOPinIntEnable(GPIO_PORTH_BASE, GPIO_RADIO_PINS);
 	IntEnable(INT_GPIOH);
 	timer2_init();
 }
@@ -62,8 +62,6 @@ uint16_t get_rc_pulse_width(RC_PULSE_t pulse)
 ///////////////////////////////////////////////////////////////////
 void PortH_InterruptHandler()
 {
-	static volatile uint16_t pw1start, pw1stop, pw2start, pw2stop;
-
 	// Save the interrupt status for later
 	uint8_t status = GPIOPinIntStatus(GPIO_PORTH_BASE, false);
 
@@ -101,6 +99,23 @@ void PortH_InterruptHandler()
 			// Did we overflow?
 			if(pulse_width[PULSE_AILERON] < 0)
 				pulse_width[PULSE_AILERON] += 0xFFFF;
+		}
+	}
+
+	if(status & GPIO_PIN_THROTTLE)
+	{
+		// Was this a rising or falling edge?
+		if(GPIOPinRead(GPIO_PORTH_BASE, GPIO_PIN_THROTTLE)){
+			// It was a rising edge
+			pulse_start[PULSE_THROTTLE] = Tick1us;
+		}else{
+			// It was a falling edge
+			pulse_stop[PULSE_THROTTLE] = Tick1us;
+
+			pulse_width[PULSE_THROTTLE] = pulse_stop[PULSE_THROTTLE] - pulse_start[PULSE_THROTTLE];
+			// Did we overflow?
+			if(pulse_width[PULSE_THROTTLE] < 0)
+				pulse_width[PULSE_THROTTLE] += 0xFFFF;
 		}
 	}
 }
