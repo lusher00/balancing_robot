@@ -40,6 +40,11 @@
 #define L3G4200D_DPS_1000      0x20
 #define L3G4200D_DPS_2000      0x30
 
+#define L3G4200D_DR_100		   0x00
+#define L3G4200D_DR_200		   0x40
+#define L3G4200D_DR_400		   0x80
+#define L3G4200D_DR_800		   0xD0
+
 extern double g_gyroScale;
 
 //extern int16_t gyro_x_raw, gyro_y_raw, gyro_z_raw;

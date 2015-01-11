@@ -27,11 +27,15 @@ void gyro_get_y_raw(int16_t* gyro_y_raw)
 {
     unsigned long data[2];
     unsigned long temp = 0;
-    unsigned long num_checks = 0;
+    //unsigned long num_checks = 0;
 
+
+    // Wait until the gyro has a new reading. num_checks was going to tell
+    // me how long I sat here waiting for a new reading but I don't think
+    // I have ever had to wait. This probably isn't necessary.
     do{
     	temp = i2c_rx_single(GYRO_ADDRESS, L3G4200D_STATUS_REG);
-    	num_checks++;
+    	//num_checks++;
     }while(!(temp & 0x02));
 
     i2c_rx_multi(GYRO_ADDRESS, L3G4200D_OUT_Y_L | 0x80 , 2, data);
@@ -138,7 +142,8 @@ void gyro_init()
     //  Wake up the device 0b00001000
     //  Enable ZYX axes    0b00000ZYX
     //  and set the output data rate to 800Hz
-    i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG1, 0x4A);
+    i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG1, 0xFA);
+    //i2c_tx_single(GYRO_ADDRESS, L3G4200D_CTRL_REG1, 0xFA);
         
     //  Calibrate the gyro
     for(i=0; i<1000; i++)

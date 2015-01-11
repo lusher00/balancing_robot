@@ -1,5 +1,5 @@
 /* Kalman filter variables and constants */
-const double Q_angle = 0.01; // Process noise covariance for the accelerometer - Sw
+const double Q_angle = 0.001; // Process noise covariance for the accelerometer - Sw
 const double Q_gyro = 0.003; // Process noise covariance for the gyro - Sw
 const double R_angle = 0.3; // Measurement noise covariance - Sv
 

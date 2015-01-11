@@ -10,6 +10,7 @@
 #include "softeeprom.h"
 #include "main.h"
 #include "rc_radio.h"
+#include "my_timers.h"
 
 char cmd_rx_buff[32];
 char *pResult;
@@ -19,8 +20,8 @@ char delim[] = {";"};
 extern double zero_ang;
 extern double right_mot_gain, left_mot_gain;
 extern t_piddata pid_ang;
-extern double filtered_ang, rest_ang;
-extern int motor_val;
+extern double filtered_ang, rest_ang, accel_pitch_ang, gyro_pitch_ang;
+extern int16_t motor_val, motor_left, motor_right;
 
 extern double kP, kI, kD;
 
@@ -28,12 +29,33 @@ extern double kP, kI, kD;
 extern uint32_t delta_t;
 extern int16_t gyro_x, gyro_y, gyro_z;
 extern int16_t accel_x, accel_y, accel_z;
+extern double COMP_C;
 
 
 
 
 
 char buff[128];
+
+char* str1 = "\r\n+STWMOD=0\r\n";
+char* str3 = "\r\n+STNA=SeeeduinoBluetooth\r\n";
+char* str4 = "\r\n+STAUTO=0\r\n";
+char* str5 = "\r\n+STOAUT=1\r\n";
+char* str6 = "\r\n+STPIN=0000\r\n";
+char* str7 = "\r\n+INQ=1\r\n";
+
+void setupBluetooth()
+{
+	UARTSend(str1, strlen(str1), 1); delay100us(30000);
+	UARTSend(str3, strlen(str3), 1); delay100us(30000);
+	UARTSend(str4, strlen(str4), 1); delay100us(30000);
+	UARTSend(str5, strlen(str5), 1); delay100us(30000);
+	UARTSend(str6, strlen(str6), 1); delay100us(30000);
+	delay100us(20000);
+	UARTSend(str7, strlen(str7), 1); delay100us(30000);
+	delay100us(20000);
+
+}
 
 void command_handler_init()
 {
@@ -45,7 +67,7 @@ void print_debug(uint8_t uart)
 {
 	memset(buff, '\0', sizeof(buff));
 
-	sprintf(buff, "%s; %5d; %5d; %5d; %5d; %5d; %5d; %5d; %3.3lf; %3d; %3d; %3.3lf\r\n",
+	sprintf(buff, "%s; %5d; %5d; %5d; %5d; %5d; %5d; %5d; %3.3lf; %3.3lf; %3.3lf\r\n",
 			"DEBUG",
 			delta_t,
 			accel_x,
@@ -55,9 +77,8 @@ void print_debug(uint8_t uart)
 			gyro_y,
 			gyro_z,
 			filtered_ang,
-			QEIPositionGet(QEI0_BASE), // right
-			QEIPositionGet(QEI1_BASE), // left
-			rest_ang
+			accel_pitch_ang,
+			gyro_pitch_ang
 			);
 	UARTSend(buff, strlen(buff), uart);
 }
@@ -77,15 +98,28 @@ void print_debug2(uint8_t uart)
 	UARTSend(buff, strlen(buff), uart);
 }
 
+void print_debug3(uint8_t uart)
+{
+	memset(buff, '\0', sizeof(buff));
+
+	sprintf(buff, "%s; %d; %d; %3.3lf\r\n",
+			"VELOCITY",
+			motor_left,
+			motor_right,
+			filtered_ang
+		);
+	UARTSend(buff, strlen(buff), uart);
+}
+
 void print_control_surfaces(uint8_t uart)
 {
 	memset(buff, '\0', sizeof(buff));
 
-	sprintf(buff, "ELEVATOR = %5u; RUDDER = %5u; AILERON = %5u; THROTTLE = %5u\r\n",
-			get_rc_pulse_width(PULSE_ELEVATOR),
-			get_rc_pulse_width(PULSE_RUDDER),
-			get_rc_pulse_width(PULSE_AILERON),
-			get_rc_pulse_width(PULSE_THROTTLE)
+	sprintf(buff, "ELEVATOR = %5i; RUDDER = %5i; AILERON = %5i; THROTTLE = %5i\r\n",
+			get_rc_pulse_width(PULSE_ELEVATOR, false),
+			get_rc_pulse_width(PULSE_RUDDER, false),
+			get_rc_pulse_width(PULSE_AILERON, false),
+			get_rc_pulse_width(PULSE_THROTTLE, false)
 			);
 
 	UARTSend(buff, strlen(buff), uart);
@@ -95,13 +129,14 @@ void print_params(uint8_t uart)
 {
 	memset(buff, '\0', sizeof(buff));
 
-	sprintf(buff, "%s; %d; %3.3lf; %3.3lf; %3.3lf; %3.3lf\r\n",
+	sprintf(buff, "%s; %d; %3.3lf; %3.3lf; %3.3lf; %3.3lf; %3.3lf; \r\n",
 			"PARAMS",
-			6,
+			8,
 			kP,
 			kI,
 			kD,
-			zero_ang);
+			zero_ang,
+			COMP_C);
 	UARTSend(buff, strlen(buff), uart);
 }
 
@@ -213,6 +248,10 @@ void command_handler()
 
 			}else if(strcmp(pResult, "MOTR") == 0){
 				right_mot_gain = atof(strtok(0, delim));
+
+			}else if(strcmp(pResult, "COMPC!") == 0){
+				COMP_C = atof(strtok(0, delim));
+				SoftEEPROMWriteDouble(COMPC_ID, COMP_C);
 
 			}
 		}

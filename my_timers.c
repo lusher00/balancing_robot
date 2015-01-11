@@ -29,7 +29,7 @@ void my_timer1_init()
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
 	TimerConfigure(TIMER1_BASE, TIMER_CFG_32_BIT_PER);
 	// Interrupt every 1ms
-	TimerLoadSet(TIMER1_BASE, TIMER_A, SysCtlClockGet()/1000);
+	TimerLoadSet(TIMER1_BASE, TIMER_A, SysCtlClockGet()/10000);
 	IntEnable(INT_TIMER1A);
 	TimerIntEnable(TIMER1_BASE, TIMER_TIMA_TIMEOUT);
 	TimerControlStall(TIMER1_BASE, TIMER_A, true);

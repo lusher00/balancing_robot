@@ -20,7 +20,7 @@ void pid_init(double p_factor, double i_factor, double d_factor, t_piddata *pid)
 
 	// Limits to avoid overflow
 	pid->maxError = (double)(MAX_INT / (pid->P_Factor + 1));
-	pid->maxSumError = (double)(MAX_I_TERM / (pid->I_Factor + 1));
+	pid->maxSumError = 100.0;//(double)(MAX_I_TERM / (pid->I_Factor + 1));
 }
 
 void pid_update(double p_factor, double i_factor, double d_factor, t_piddata *pid)
@@ -125,6 +125,48 @@ int16_t pid_controller(double setPoint, double processValue, double delta_t, t_p
 		ret = PWM_PERIOD;
 	else if(ret < -PWM_PERIOD)
 		ret = -PWM_PERIOD;
+
+	return((int16_t)ret);
+}
+
+void motor_controller_init(double p_factor, double i_factor, double d_factor, t_motorData *pid_st)
+{
+    pid_st->lastProcessValue = 0;
+    pid_st->sumError = 0;
+    pid_st->P_Factor = p_factor;
+    pid_st->I_Factor = i_factor;
+    pid_st->D_Factor = d_factor;
+    pid_st->maxError = 256;
+    pid_st->maxSumError = 2048;
+
+}
+
+int16_t motor_controller(int32_t setPoint, int32_t processValue, double delta_t, t_motorData *pid_st)
+{
+	int32_t ret=0;
+
+	pid_st->error = setPoint - processValue;
+
+	pid_st->p_term = pid_st->P_Factor * pid_st->error;
+
+	pid_st->sumError += pid_st->error;
+
+	if(pid_st->sumError > pid_st->maxSumError)
+		pid_st->sumError = pid_st->maxSumError;
+
+	pid_st->i_term = pid_st->sumError * pid_st->I_Factor * delta_t;
+
+	pid_st->d_term = (pid_st->error - pid_st->lastError) * pid_st->D_Factor / delta_t;
+
+	pid_st->lastError = pid_st->error;
+
+	ret = (pid_st->p_term + pid_st->i_term + pid_st->d_term);
+
+	// Limit the size of the return value
+	if(ret > PWM_PERIOD)
+		ret = PWM_PERIOD/2;
+	else if(ret < -PWM_PERIOD)
+		ret = -PWM_PERIOD/2;
 
 	return((int16_t)ret);
 }
