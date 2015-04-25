@@ -92,4 +92,10 @@
 			<locationURI>PARENT-3-PROJECT_LOC/utils/uartstdio.h</locationURI>
 		</link>
 	</linkedResources>
+	<variableList>
+		<variable>
+			<name>SW_ROOT</name>
+			<value>$%7BPARENT-3-PROJECT_LOC%7D</value>
+		</variable>
+	</variableList>
 </projectDescription>
