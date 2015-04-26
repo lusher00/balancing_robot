@@ -1,7 +1,7 @@
+#include "inc/hw_types.h"
 #include "utils.h"
 #include "driverlib/gpio.h"
 #include "inc/hw_memmap.h"
-#include "inc/hw_types.h"
 #include "stdint.h"
 
 void led_init()

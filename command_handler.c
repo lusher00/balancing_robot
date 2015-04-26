@@ -1,6 +1,7 @@
+#include "inc/hw_types.h"
 #include "inc/hw_memmap.h"
 #include "command_handler.h"
-#include "uartstdio.h"
+#include "utils/uartstdio.h"
 #include "my_uart.h"
 #include "stdio.h"
 #include "stdlib.h"

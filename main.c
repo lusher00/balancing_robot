@@ -2,6 +2,7 @@
 /*******************************************************************
  * Stellaris driverlibs
  *******************************************************************/
+#include "inc/hw_types.h"
 #include "grlib/grlib.h"
 #include "driverlib/i2c.h"
 #include "driverlib/qei.h"
@@ -20,7 +21,6 @@
  * Stellaris hardware
  *******************************************************************/
 #include "inc/hw_nvic.h"
-#include "inc/hw_types.h"
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 

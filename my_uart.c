@@ -1,8 +1,8 @@
+#include "inc/hw_types.h"
 #include "my_uart.h"
 #include "driverlib/uart.h"
 #include "driverlib/gpio.h"
 #include "inc/hw_memmap.h"
-#include "inc/hw_types.h"
 
 void my_uart_0_init(unsigned long baud, unsigned long config)
 {

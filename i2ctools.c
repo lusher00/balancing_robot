@@ -1,6 +1,6 @@
+#include "inc/hw_types.h"
 #include "i2ctools.h"
 #include "driverlib/i2c.h"
-#include "inc/hw_types.h"
 #include "inc/hw_memmap.h"
 #include "driverlib/gpio.h"
 
