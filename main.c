@@ -74,7 +74,7 @@ double kP, kI, kD;
 
 uint32_t delta_t, sum_delta_t;
 
-double R, filtered_ang, accel_pitch_ang, gyro_pitch_ang, zero_ang, rest_ang=0.0;
+double R, filtered_ang, accel_pitch_ang, gyro_pitch_ang, zero_ang, commanded_ang;
 
 double right_mot_gain=1.0, left_mot_gain=1.0;
 
@@ -89,25 +89,25 @@ double COMP_C = 0.98;
 
 const double cMaxLean = 5.0;
 
-double calc_rest_angle(int32_t commanded_pos)
+void calc_commanded_angle(int32_t commanded_pos)
 {
 	double error=0.0, pos=0.0;
 	int32_t pos_right, pos_left;
-	double ang;
 
 	pos_right = QEIPositionGet(QEI0_BASE);
 	pos_left = QEIPositionGet(QEI1_BASE);
 
 	pos = (double)(pos_right + pos_left);
-
 	error = (double)(commanded_pos - pos);
 
-	if(ang > cMaxLean)
-		ang = cMaxLean;
-	else if(ang < -cMaxLean)
-		ang = -cMaxLean;
-
-	return ang;
+	if(abs(error) > 4000.0)
+		commanded_ang -= error / 600.0;
+	else if(abs(error) > 2000.0)
+		commanded_ang -= error / 800.0;
+	else if(abs(error) > 500.0)
+		commanded_ang -= error / 1000.0;
+	else
+		commanded_ang -= error / 500.0;
 }
 
 
@@ -175,12 +175,13 @@ main(void)
 	SoftEEPROMWriteDouble(kI_ID, 10.00);
 	SoftEEPROMWriteDouble(kD_ID, 10.00);
 	SoftEEPROMWriteDouble(ANG_ID, 0.0);
+	SoftEEPROMWriteDouble(COMPC_ID, 0.99);
 #endif
 
 	kP = SoftEEPROMReadDouble(kP_ID);
 	kI = SoftEEPROMReadDouble(kI_ID);
 	kD = SoftEEPROMReadDouble(kD_ID);
-	zero_ang = SoftEEPROMReadDouble(ANG_ID);
+	commanded_ang = zero_ang = SoftEEPROMReadDouble(ANG_ID);
 	COMP_C = SoftEEPROMReadDouble(COMPC_ID);
 
 	pid_init(kP, kI, kD, &pid_ang);
@@ -248,7 +249,7 @@ main(void)
 		}
 		halted_latch = 0;
 
-		motor_val = pid_controller(rest_ang, filtered_ang, delta_t, &pid_ang);
+		motor_val = pid_controller(commanded_ang, filtered_ang, delta_t, &pid_ang);
 		motor_left = motor_right = motor_val;
 		drive_motors(motor_left*left_mot_gain, motor_right*right_mot_gain);
 	}

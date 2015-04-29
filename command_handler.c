@@ -21,7 +21,7 @@ char delim[] = {";"};
 extern double zero_ang;
 extern double right_mot_gain, left_mot_gain;
 extern t_piddata pid_ang;
-extern double filtered_ang, rest_ang, accel_pitch_ang, gyro_pitch_ang;
+extern double filtered_ang, commanded_ang, accel_pitch_ang, gyro_pitch_ang;
 extern int16_t motor_val, motor_left, motor_right;
 
 extern double kP, kI, kD;
@@ -92,7 +92,7 @@ void print_debug2(uint8_t uart)
 			"DEBUG2",
 			delta_t,
 			filtered_ang,
-			rest_ang,
+			commanded_ang,
 			QEIPositionGet(QEI0_BASE), // right
 			QEIPositionGet(QEI1_BASE) // left
 			);
