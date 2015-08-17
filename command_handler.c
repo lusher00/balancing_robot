@@ -145,14 +145,16 @@ void print_update(uint8_t uart)
 {
 	memset(buff, 0, sizeof(buff));
 
-	sprintf(buff, "UPDATE; %d; %3.3lf; %d; %3.3lf; %3.3lf; %3.3lf; \r\n",
-			//"UPDATE",
-			8,
+	sprintf(buff, "UPDATE; %d; %3.3lf; %d; %3.3lf; %3.3lf; %3.3lf; %u; %u; \r\n",
+			10,
 			filtered_ang,
 			motor_val,
 			p_get(&pid_ang),
 			i_get(&pid_ang),
-			d_get(&pid_ang)
+			d_get(&pid_ang),
+			QEIPositionGet(QEI1_BASE), // left
+			QEIPositionGet(QEI0_BASE) // right
+
 	);
 
 	UARTSend(buff, strlen(buff), uart);

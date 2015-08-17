@@ -90,8 +90,9 @@ double COMP_C = 0.98;
 
 const double cMaxLean = 5.0;
 
-void calc_commanded_angle(int32_t commanded_pos)
+double calc_commanded_angle(int32_t commanded_pos)
 {
+	double ret_angle=0.0;
 	double error=0.0, pos=0.0;
 	int32_t pos_right, pos_left;
 
@@ -102,13 +103,15 @@ void calc_commanded_angle(int32_t commanded_pos)
 	error = (double)(commanded_pos - pos);
 
 	if(abs(error) > 4000.0)
-		commanded_ang -= error / 600.0;
+		ret_angle = commanded_ang - error / 600.0;
 	else if(abs(error) > 2000.0)
-		commanded_ang -= error / 800.0;
+		ret_angle = commanded_ang - error / 800.0;
 	else if(abs(error) > 500.0)
-		commanded_ang -= error / 1000.0;
+		ret_angle = commanded_ang - error / 1000.0;
 	else
-		commanded_ang -= error / 500.0;
+		ret_angle = commanded_ang - error / 500.0;
+
+	return ret_angle;
 }
 
 
@@ -250,7 +253,7 @@ main(void)
 		}
 		halted_latch = 0;
 
-		motor_val = pid_controller(commanded_ang, filtered_ang, delta_t, &pid_ang);
+		motor_val = pid_controller(calc_commanded_angle(0), filtered_ang, delta_t, &pid_ang);
 		motor_left = motor_right = motor_val;
 		drive_motors(motor_left*left_mot_gain, motor_right*right_mot_gain);
 	}
