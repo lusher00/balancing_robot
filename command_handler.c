@@ -145,7 +145,7 @@ void print_update(uint8_t uart)
 {
 	memset(buff, 0, sizeof(buff));
 
-	sprintf(buff, "UPDATE; %d; %3.3lf; %d; %3.3lf; %3.3lf; %3.3lf; %u; %u; \r\n",
+	sprintf(buff, "UPDATE; %d; %3.3lf; %d; %3.3lf; %3.3lf; %3.3lf; %d; %d; \r\n",
 			10,
 			filtered_ang,
 			motor_val,
